@@ -10,7 +10,7 @@ andrew called the attribute lattice
 swag
 
 
-olivia doesn't have an attribute for neighbour order (maybe i missed it???)
+olivia doesn't have an attribute for neighbour order (maybe i missed it??? though neighbour order doesn't really make sense for traffic problem)
 carlos called the attribute neighbour_order
 andrew called the attribute neighbour_rule
 andrew should change their attribute name to match carlos and the documentation (overleaf document)
