@@ -5,15 +5,79 @@ import numpy
 
 
 def arrayIndexes(shape):
-    tmp = [numpy.concatenate((
+    
+    
+    """
+    arrayIndexes                                                Python Documentation
+    
+    Indexes of an N-Dimensional Array
+    
+    
+    
+    Description:
+    
+    Get the index of each element of an n-dimensional array. Each index is returned
+    as a tuple of integers, with the last dimension being iterated over fastest.
+    
+    
+    
+    Usage:
+    
+    arrayIndexes(shape)
+    
+    
+    
+    Arguments:
+    
+    shape
+    
+        a tuple of integers; the shape of an n-dimensional array.
+    
+    
+    
+    Value:
+    
+    A list of tuples of integers. The list will contain 'numpy.prod(shape)' tuples
+    and each tuple will contain 'len(shape)' integers.
+    
+    
+    
+    Note:
+    
+    This function has similar behaviour to 'list(numpy.ndindex(shape))'. The
+    difference is that 'arrayIndexes' uses negative integers for the second half of
+    each dimension.
+    
+    
+    
+    Examples:
+    
+    arrayIndexes( (4, 5) )
+    """
+    
+    
+##    x = [numpy.arange(n) for n in shape]
+    
+    
+    # similar to the above code, but uses a split of positive and negative indexes
+    x = [numpy.concatenate((
         numpy.arange(0,  (n + 1)//2),
         numpy.arange(-(n - 1)//2, 0)
     )) for n in shape]
+    
+    
+    # each element of the above arrays must be repeated 'each' times
     each = numpy.cumprod((1,) + shape[:0:-1])[::-1]
-    value = [None] * len(shape)
-    for i, x, y, z, in zip(range(len(shape)), tmp, each, numpy.prod(shape)//(shape * each)):
-        value[i] = numpy.concatenate([x.repeat(y)] * z)
-    return list(zip(*value))
+    
+    
+    # after repeating the array with 'each',
+    # the entire array must be repeated 'times' times
+    times = numpy.prod(shape)//(shape * each)
+    return list(zip(*[
+        numpy.concatenate([x_.repeat(each_)] * times_) for x_, each_, times_ in zip(
+            x, each, times
+        )
+    ]))
 
 
 
@@ -404,7 +468,7 @@ class CA:
         for indx in indexes:
             
             
-            # DO NOT GIVE THE USER flat_lattice[indx]
+            # DO NOT GIVE THE USER x[indx]
             # THAT WOULD FAIL IF THE DATA IS NON-MUTABLE
             # GIVE THE LATTICE AND THE INDEX, LET THE USER
             # DEAL WITH EACH AS THEY NEED TO
