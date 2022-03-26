@@ -26,7 +26,7 @@ traffic.Traffic(lattice = [1, 0, 0, 0, 0, 0, 0, 0]).animate()
 matplotlib.pyplot.show()
 
 
-tf = traffic.Traffic(
+ani = traffic.Traffic(
     lattice = [
         [3, 0, 0, 0, 0],
         [0, 0, 0, 0, 0],
@@ -34,15 +34,8 @@ tf = traffic.Traffic(
         [0, 4, 0, 0, 0],
         [0, 0, 0, 0, 0],
     ]
-)
-
-
-tf.plot()
-matplotlib.pyplot.show()
-
-
-tf.animate(frames = 20, interval = 1000)
-matplotlib.pyplot.show()
+).animate(frames = 20, interval = 1000)
+ani.save("../output/traffic-demo.gif")
 
 
 ##print(land_use.LandUse(lattice = numpy.array([

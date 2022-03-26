@@ -21,10 +21,9 @@ INFO = np.array([
     [LEFT  := 3, "green" ],
     [UP    := 4, "purple"]
 ], dtype = object)
-##COLS = [tuple([round(xx * 255) for xx in col.to_rgba(x)]) for x in INFO[:, 1]]
-DIRECTIONS = INFO[:, 0]
-COLS       = INFO[:, 1]
-CMAP       = ListedColormap(COLS)
+DIRS = INFO[:, 0]
+COLS = INFO[:, 1]
+CMAP = ListedColormap(COLS)
 del INFO
 
 
@@ -35,26 +34,44 @@ class Traffic(ca.CA):
     
     
     def __init__(self, shape = None, lattice = None):
-        if not (lattice is None):
-            if not (shape is None):
-                raise ValueError("only one of 'shape' and 'lattice' can be used")
+        
+        
+        nargs = (shape is not None) + (lattice is not None)
+        if nargs < 1:
+            raise ValueError("provide either 'shape' or 'lattice'")
+        if nargs > 1:
+            raise ValueError("only one of 'shape' and 'lattice' can be used")
+        which = "shape" if (shape is not None) else "lattice"
+        
+        
+        if shape is not None:
+            shape = numpy.empty(shape).shape
+        else:
             lattice = np.asarray(lattice, dtype = int)
             shape = lattice.shape
-        else:
-            shape = numpy.empty(shape).shape
+        do_check = True
         if len(shape) == 1:
-            shape = (1,) + shape
+            if lattice is not None:
+                if   np.isin(lattice, [NOCAR, RIGHT, LEFT]).all():
+                    shape = (1,) + shape
+                elif np.isin(lattice, [NOCAR, DOWN , UP  ]).all():
+                    shape = shape + (1,)
+                else:
+                    raise ValueError("invalid 'lattice', 1 dimensional traffic should have all left-right or down-up")
+                do_check = False  # because we already did it
+            else:
+                shape = (1,) + shape
         if len(shape) != 2:
-            raise NotImplementedError(f"invalid 'shape', {len(shape)} dimensional traffic automata are not yet implemented")
+            raise NotImplementedError(f"invalid '{which}', {len(shape)} dimensional traffic automata are not yet implemented")
+        if (lattice is not None) and do_check:
+            if not np.isin(lattice, DIRECTIONS).all():
+                raise ValueError(f"invalid 'lattice', contains directions outside of {DIRECTIONS}")                
         super().__init__(
             shape = shape,
             cell_type = int,
             neighbour_order = None
         )
-        if not (lattice is None):
-            for x in lattice.ravel():
-                if not (x in DIRECTIONS):
-                    raise ValueError(f"invalid direction {x}")
+        if lattice is not None:
             tmp = self.lattice.ravel()
             tmp[:] = lattice.ravel()
         else:
@@ -66,14 +83,14 @@ class Traffic(ca.CA):
     
     
     def neighbour(self, indx, direction):
-        if direction == RIGHT:
+        if   direction == RIGHT:
             return (indx[0]    , indx[1] + 1)
-        elif direction == UP:
-            return (indx[0] - 1, indx[1]    )
-        elif direction == LEFT:
-            return (indx[0]    , indx[1] - 1)
         elif direction == DOWN:
             return (indx[0] + 1, indx[1]    )
+        elif direction == LEFT:
+            return (indx[0]    , indx[1] - 1)
+        elif direction == UP:
+            return (indx[0] - 1, indx[1]    )
         raise ValueError("invalid 'direction' argument")
         return
     
@@ -153,8 +170,13 @@ class Traffic(ca.CA):
                         y = indx[0] - delta[0]/4.0
                     )
             return (im, *arrows)
+        def init():
+            # i can't believe this fixes the issue, it feels like a joke
+            im.set_data(self.lattice)
+            return (im,)
         return ani.FuncAnimation(
-            fig, fun, frames = np.arange(frames),
+            fig, fun, init_func = init,
+            frames = np.arange(frames),
             blit = True, interval = interval
         )
     
