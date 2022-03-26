@@ -9,14 +9,15 @@ import re
 
 
 INFO = numpy.array([
-    [(WATEROP := 0), "water", "#56B4E9FF"],
-    [(EARTHOP := 1), "earth", "#8B4513FF"],
-    [(FIREOP  := 2), "fire" , "#D55E00FF"],
-    [(TREEOP  := 3), "tree" , "#009E73FF"]
+    [(WATEROP := 0), "water", "#56B4E9FF", 0.1],
+    [(EARTHOP := 1), "earth", "#8B4513FF", 0.4],
+    [(FIREOP  := 2), "fire" , "#D55E00FF", 0.0],
+    [(TREEOP  := 3), "tree" , "#009E73FF", 0.5]
 ], dtype = object)
 OPS       = INFO[:, 0].astype(int)
 LAND_USES = INFO[:, 1].astype(str)
 COLS      = [tuple([int(xx[i:(i + 2)], 16) for i in range(1, len(xx), 2)]) for xx in INFO[:, 2]]
+PROBS     = INFO[:, 3].astype(float)
 del INFO
 if not numpy.array_equal(OPS, range(len(OPS))):
     raise ValueError(f"invalid OPS, should be 0:{len(OPS)}")
@@ -40,13 +41,6 @@ N = max([len(x) for x in LAND_USES])
 F_LAND_USES        = [("{:<" + str(N)     + "}").format(x) for x in LAND_USES]
 F_LAND_USES_QUOTED = [("{:<" + str(N + 2) + "}").format("\"" + x + "\"") for x in LAND_USES]
 del N
-
-
-
-
-
-INIT_CHOICES = [WATEROP, EARTHOP, TREEOP]
-INIT_PROB    = [    0.1,     0.4,    0.5]
 
 
 
@@ -115,7 +109,7 @@ class LandUseCell:
     
     def random_cell():
         return _LandUseCell_no_check(
-            numpy.random.choice(INIT_CHOICES, p = INIT_PROB),
+            numpy.random.choice(OPS, p = PROBS),
             numpy.random.randint(25)
         )
     
@@ -144,17 +138,16 @@ class LandUse(ca.CA):
                 raise ValueError("only one of 'shape' and 'lattice' can be used")
             lattice = numpy.asarray(lattice, dtype = str)
             shape = lattice.shape
+        else:
+            shape = numpy.empty(shape).shape
+        if len(shape) != 2:
+            raise NotImplementedError(f"invalid 'shape', {len(shape)} dimensional land use automata are not yet implemented")
         super().__init__(
             shape = shape,
             cell_type = LandUseCell,
             neighbour_order = neighbour_order
         )
-        if self.lattice.ndim <= 1:
-            self.lattice.shape = (1,) + self.lattice.shape
-        if self.lattice.ndim > 2:
-            raise ValueError(f"invalid 'shape', {self.lattice.ndim} dimensional land use automata are not yet implemented")
         if not (lattice is None):
-            
             shape = self.lattice.shape
             self.lattice.shape = (self.lattice.size,)
             indx = -1
@@ -166,12 +159,12 @@ class LandUse(ca.CA):
                 indx += 1
                 self.lattice[indx] = LandUseCell(land_use = temp[0], age = temp[2])
             self.lattice.shape = shape
-            for indx in numpy.ndindex(self.lattice.shape):
-                temp = re.search(land_use_pattern, lattice[indx])
-                if temp is None:
-                    raise ValueError(f"invalid land use string '{xx}'")
-                temp = temp.groups()
-                self.lattice[indx] = LandUseCell(land_use = temp[0], age = temp[2])
+##            for indx in numpy.ndindex(self.lattice.shape):
+##                temp = re.search(land_use_pattern, lattice[indx])
+##                if temp is None:
+##                    raise ValueError(f"invalid land use string '{xx}'")
+##                temp = temp.groups()
+##                self.lattice[indx] = LandUseCell(land_use = temp[0], age = temp[2])
         else:
             for indx in numpy.ndindex(self.lattice.shape):
                 self.lattice[indx] = LandUseCell.random_cell()

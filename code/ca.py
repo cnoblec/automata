@@ -4,14 +4,29 @@ import numpy
 
 
 
+def arrayIndexes(shape):
+    tmp = [numpy.concatenate((
+        numpy.arange(0,  (n + 1)//2),
+        numpy.arange(-(n - 1)//2, 0)
+    )) for n in shape]
+    each = numpy.cumprod((1,) + shape[:0:-1])[::-1]
+    value = [None] * len(shape)
+    for i, x, y, z, in zip(range(len(shape)), tmp, each, numpy.prod(shape)//(shape * each)):
+        value[i] = numpy.concatenate([x.repeat(y)] * z)
+    return list(zip(*value))
+
+
+
+
+
 NEIGHBOURS = numpy.array([
     
     
     # 1D neighbours
     numpy.array([
-        [(NEIGHBOURS1D2OP := 0), (lambda index : [
-                                      index - 1,  # left  1
-                                      index + 1   # right 1
+        [(NEIGHBOURS1D2OP := 0), (lambda indx : [
+                                      (indx[0] + 1,),  # right 1
+                                      (indx[0] - 1,)   # left  1
                                   ])
         ]
     ], dtype = object),
@@ -19,22 +34,22 @@ NEIGHBOURS = numpy.array([
     
     # 2D neighbours
     numpy.array([
-        [(NEIGHBOURS2D4OP := 1), (lambda index , nrow : [
-                                      index + 1       ,  # right 1
-                                      index     - nrow,  # up    1
-                                      index - 1       ,  # left  1
-                                      index     + nrow   # down  1
+        [(NEIGHBOURS2D4OP := 1), (lambda indx : [
+                                      (indx[0]    , indx[1] + 1),  # right 1
+                                      (indx[0] - 1, indx[1]    ),  # up    1
+                                      (indx[0]    , indx[1] - 1),  # left  1
+                                      (indx[0] + 1, indx[1]    )   # down  1
                                   ])
         ],
-        [(NEIGHBOURS2D8OP := 2), (lambda index , nrow : [
-                                      index + 1       ,  # right 1
-                                      index + 1 - nrow,  # right 1 up   1
-                                      index     - nrow,  #         up   1
-                                      index - 1 - nrow,  # left  1 up   1
-                                      index - 1       ,  # left  1
-                                      index - 1 + nrow,  # left  1 down 1
-                                      index     + nrow,  #         down 1
-                                      index + 1 + nrow   # right 1 down 1
+        [(NEIGHBOURS2D8OP := 2), (lambda indx : [
+                                      (indx[0]    , indx[1] + 1),  # right 1
+                                      (indx[0] - 1, indx[1] + 1),  # right 1 up   1
+                                      (indx[0] - 1, indx[1]    ),  #         up   1
+                                      (indx[0] - 1, indx[1] - 1),  # left  1 up   1
+                                      (indx[0]    , indx[1] - 1),  # left  1
+                                      (indx[0] + 1, indx[1] - 1),  # left  1 down 1
+                                      (indx[0] + 1, indx[1]    ),  #         down 1
+                                      (indx[0] + 1, indx[1] + 1)   # right 1 down 1
                                   ])
         ]
     ], dtype = object)
@@ -209,15 +224,15 @@ class CA:
         
         
         if hasattr(self, "fill_value"):
-            return numpy.full (len(self), self.fill_value, self.lattice.dtype)
+            return numpy.full (self.lattice.shape, self.fill_value, self.lattice.dtype)
         elif self.lattice.dtype in [bool, int, float, complex]:
-            return numpy.zeros(len(self), self.lattice.dtype)
+            return numpy.zeros(self.lattice.shape, self.lattice.dtype)
         else:
-            return numpy.empty(len(self), self.lattice.dtype)
+            return numpy.empty(self.lattice.shape, self.lattice.dtype)
     
     
     def empty_fun(self):
-        shape = len(self)
+        shape = self.lattice.shape
         dtype = self.lattice.dtype
         if hasattr(self, "fill_value"):
             fill_value = self.fill_value
@@ -249,7 +264,7 @@ class CA:
         return self.lattice.__setitem__(indexes, value)
     
     
-    def neighbours(self, index):
+    def neighbours(self, indx):
         
         
         """
@@ -267,13 +282,13 @@ class CA:
         
         Usage:
         
-        neighbours(index)
+        neighbours(indx)
         
         
         
         Arguments:
         
-        index
+        indx
         
             integer; an index of the lattice. This function is intended to receive an
             index of a flat lattice and return the neighbouring cells flat indexes.
@@ -286,11 +301,7 @@ class CA:
         """
         
         
-        if self.lattice.ndim == 1:
-            return self.__neighbours(index)
-        elif self.lattice.ndim == 2:
-            return self.__neighbours(index, self.lattice.shape[0])
-        raise NotImplementedError("'neighbours' unimplemented for {self.lattice.ndim} dimensions")
+        return self.__neighbours(indx)
     
     
     def no_update_method(self, which):
@@ -345,27 +356,13 @@ class CA:
             return
         
         
-        # we use ravel (instead of flatten) because it doesn't copy data
-        flat_lattice = self.lattice.ravel()
-        
-        
-        # better than the old, starts at index 0, but still avoids the extreme numbers
-        flat_indx = numpy.concatenate((
-            numpy.arange(0,  (n_cells + 1)//2),
-            numpy.arange(-(n_cells - 1)//2, 0)
-        ))
-##        flat_indx = numpy.arange(
-##            -n_cells//2,
-##            -n_cells//2 + n_cells
-##        )
-        
-        
         upd = self.update
         emp = self.empty_fun()
         
         
         old = None
-        new = flat_lattice
+        new = self.lattice
+        indexes = arrayIndexes(new.shape)
         for _ in range(updates_per_cell):
             
             
@@ -373,11 +370,11 @@ class CA:
             new = emp()
             
             
-            for indx in flat_indx:
+            for indx in indexes:
                 upd(old, new, indx)
-
-
-        self.lattice = new.reshape(self.lattice.shape)
+        
+        
+        self.lattice = new
         return
     
     
@@ -387,7 +384,8 @@ class CA:
         n_cells = len(self)
         
         
-        updates_per_cell = float(updates_per_cell)
+        if not isinstance(updates_per_cell, int):
+            updates_per_cell = float(updates_per_cell)
         if not numpy.isfinite(updates_per_cell):
             raise ValueError("invalid 'updates_per_cell' argument")
         
@@ -399,22 +397,18 @@ class CA:
             return
         
         
-        # we use ravel (instead of flatten) because it doesn't copy data
-        flat_lattice = self.lattice.ravel()
-        flat_indx = numpy.random.randint(
-            low  = -(n_cells - 1)//2, 
-            high =  (n_cells + 1)//2,
-            size = n_updates
-        )
         upd = self.update_random
-        for indx in flat_indx:
+        x = self.lattice
+        indexes = arrayIndexes(x.shape)
+        indexes = [indexes[i] for i in numpy.random.randint(len(indexes), size = n_updates)]
+        for indx in indexes:
             
             
             # DO NOT GIVE THE USER flat_lattice[indx]
             # THAT WOULD FAIL IF THE DATA IS NON-MUTABLE
             # GIVE THE LATTICE AND THE INDEX, LET THE USER
             # DEAL WITH EACH AS THEY NEED TO
-            upd(flat_lattice, indx)
+            upd(x, indx)
         
         
         return

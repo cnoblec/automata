@@ -1,5 +1,5 @@
 Package: automata
-Version: 0.1.0
+Version: 0.2.0
 License: MIT + file LICENSE
 Title: Cellular Automata
 Description: Implements a cellular automata class, featuring a discrete
