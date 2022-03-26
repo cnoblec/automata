@@ -1,0 +1,12 @@
+Package: automata
+Version: 0.1.0
+License: MIT + file LICENSE
+Title: Cellular Automata
+Description: Implements a cellular automata class, featuring a discrete
+    lattice (in this case, a pixel-based lattice) where pixels' behaviour
+    depends on their neighbours and some deterministic rules. Run simulations
+    with an initial lattice that evolves over time and exhibits this
+    deterministic behaviour.
+Author: Olivia Masella,
+    Carlos Noble Curveira,
+    Andrew Simmons <akwsimmo@gmail.com>
