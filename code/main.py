@@ -3,7 +3,7 @@ import land_use
 import matplotlib.animation
 import matplotlib.pyplot
 import numpy
-import traffic
+import traffic_andrew as traffic
 
 
 import importlib

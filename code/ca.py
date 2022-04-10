@@ -2,8 +2,6 @@ import numpy
 
 
 
-
-
 def arrayIndexes(shape):
     
     
@@ -78,8 +76,6 @@ def arrayIndexes(shape):
             x, each, times
         )
     ]))
-
-
 
 
 
