@@ -116,6 +116,47 @@ NEIGHBOURS = numpy.array([
                                       (indx[0] + 1, indx[1] + 1)   # right 1 down 1
                                   ])
         ]
+    ], dtype = object),
+
+    numpy.array([
+        [(NEIGHBOURS3DOPVN := 3),   (lambda indx : [
+                                    (indx[0]    , indx[1]    , indx[2] + 1),  # x + 1 , y     , z
+                                    (indx[0]    , indx[1]    , indx[2] - 1),  # x - 1 , y     , z
+                                    (indx[0]    , indx[1] + 1, indx[2]    ),  # x     , y + 1 , z
+                                    (indx[0]    , indx[1] - 1, indx[2]    ),  # x     , y - 1 , z
+                                    (indx[0] + 1, indx[1]    , indx[2]    ),  # x     , y     , z + 1
+                                    (indx[0] - 1, indx[1]    , indx[2]    ),  # x     , y     , z - 1
+                                  ])
+        ],
+        [(NEIGHBOURS3DOPMOORE := 4),    (lambda indx : [
+                                        (indx[0]    , indx[1]    , indx[2] + 1),  # x + 1 , y     , z
+                                        (indx[0]    , indx[1] + 1, indx[2] + 1),  # x + 1 , y + 1 , z
+                                        (indx[0]    , indx[1] - 1, indx[2] + 1),  # x + 1 , y - 1 , z
+                                        (indx[0] + 1, indx[1]    , indx[2] + 1),  # x + 1 , y     , z + 1
+                                        (indx[0] - 1, indx[1]    , indx[2] + 1),  # x + 1 , y     , z - 1
+                                        (indx[0] + 1, indx[1] + 1, indx[2] + 1),  # x + 1 , y + 1 , z + 1
+                                        (indx[0] - 1, indx[1] + 1, indx[2] + 1),  # x + 1 , y + 1 , z - 1
+                                        (indx[0] + 1, indx[1] - 1, indx[2] + 1),  # x + 1 , y - 1 , z + 1
+                                        (indx[0] - 1, indx[1] - 1, indx[2] + 1),  # x + 1 , y - 1 , z - 1
+                                        (indx[0]    , indx[1]    , indx[2] - 1),  # x - 1 , y     , z
+                                        (indx[0]    , indx[1] + 1, indx[2] - 1),  # x - 1 , y + 1 , z
+                                        (indx[0]    , indx[1] - 1, indx[2] - 1),  # x - 1 , y - 1 , z
+                                        (indx[0] + 1, indx[1]    , indx[2] - 1),  # x - 1 , y     , z
+                                        (indx[0] - 1, indx[1]    , indx[2] - 1),  # x - 1 , y     , z
+                                        (indx[0] + 1, indx[1] + 1, indx[2] - 1),  # x - 1 , y + 1 , z + 1
+                                        (indx[0] - 1, indx[1] + 1, indx[2] - 1),  # x - 1 , y + 1 , z - 1
+                                        (indx[0] + 1, indx[1] - 1, indx[2] - 1),  # x - 1 , y - 1 , z + 1
+                                        (indx[0] - 1, indx[1] - 1, indx[2] - 1),  # x - 1 , y - 1 , z - 1                                        (indx[0]    , indx[1] + 1, indx[2]    ),  # x     , y + 1 , z
+                                        (indx[0]    , indx[1] + 1, indx[2]    ),  # x     , y + 1 , z
+                                        (indx[0]    , indx[1] - 1, indx[2]    ),  # x     , y - 1 , z
+                                        (indx[0] + 1, indx[1] + 1, indx[2]    ),  # x     , y + 1 , z + 1
+                                        (indx[0] - 1, indx[1] + 1, indx[2]    ),  # x     , y + 1 , z - 1
+                                        (indx[0] + 1, indx[1] - 1, indx[2]    ),  # x     , y - 1 , z + 1
+                                        (indx[0] - 1, indx[1] - 1, indx[2]    ),  # x     , y - 1 , z - 1
+                                        (indx[0] + 1, indx[1]    , indx[2]    ),  # x     , y     , z + 1
+                                        (indx[0] - 1, indx[1]    , indx[2]    ),  # x     , y     , z - 1
+                                  ])
+        ]
     ], dtype = object)
     
     
