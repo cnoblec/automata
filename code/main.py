@@ -59,24 +59,30 @@ import traffic
 
 if __name__ == '__main__':
     
-    init_board = np.array([ [0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
-                            [0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
-                            [0,  0,  0,  1,  0,  0,  0,  0,  0,  0],
-                            [0,  0,  0,  0,  1,  0,  0,  0,  0,  0],
-                            [0,  0,  1,  1,  1,  0,  0,  0,  0,  0],
-                            [0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
-                            [0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
-                            [0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
-                            [0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
-                            [0,  0,  0,  0,  0,  0,  0,  0,  0,  0]])
+    # init_board = np.array([ [0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
+    #                         [0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
+    #                         [0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
+    #                         [0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
+    #                         [0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
+    #                         [0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
+    #                         [0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
+    #                         [0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
+    #                         [0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
+    #                         [0,  0,  0,  0,  0,  0,  0,  0,  0,  0]])
 
-    game = gol.Life(lattice=init_board, neighbour_order=ca.NEIGHBOURS2D8OP)
-    
-    steps = 10
-    print(game.lattice)
+    # game = gol.Life(lattice=init_board)
+    game = gol.Life(shape=(20,20))
+    game.add_shape((3,3),"pulsar")
+
+    # print(game.lattice)
+
     # game.update(game.lattice, game.lattice, (5,3))
     # print(game.lattice)
 
-    for _ in range(steps):
-        game.evolve()
-        print(game.lattice)
+    # steps = 10
+    # for _ in range(steps):
+    #     game.evolve()
+    #     print(game.lattice)
+
+    ani = game.animate(frames=3, interval=500,filename="output/gol_pulsar.gif")
+    # matplotlib.pyplot.show()
