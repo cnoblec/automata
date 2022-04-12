@@ -8,38 +8,87 @@ import re
 
 
 
+# each land use consists of:
+# * an OP, an integer to identify the land use
+# * a land use string, for printing
+# * a colour, for plotting
+# * a probability of being chosen, for initializing a random land use cell
 INFO = numpy.array([
     [(WATEROP := 0), "water", "#56B4E9FF", 0.1],
     [(EARTHOP := 1), "earth", "#8B4513FF", 0.4],
     [(FIREOP  := 2), "fire" , "#D55E00FF", 0.0],
-    [(TREEOP  := 3), "tree" , "#009E73FF", 0.5]
+    [(TREEOP  := 3), "tree" , "#009E73FF", 0.5],
 ], dtype = object)
-OPS       = INFO[:, 0].astype(int)
-LAND_USES = INFO[:, 1].astype(str)
-COLS      = [tuple([int(xx[i:(i + 2)], 16) for i in range(1, len(xx), 2)]) for xx in INFO[:, 2]]
-PROBS     = INFO[:, 3].astype(float)
+OPS   = tuple(INFO[:, 0].astype(int))
+LUS   = tuple(INFO[:, 1].astype(str))
+COLS  = tuple([
+    tuple([
+        int(xx[i:(i + 2)], 16)
+        for i in range(1, len(xx), 2)
+    ])
+    for xx in INFO[:, 2]
+])
+PROBS = tuple(INFO[:, 3].astype(float))
 del INFO
 if not numpy.array_equal(OPS, range(len(OPS))):
     raise ValueError(f"invalid OPS, should be 0:{len(OPS)}")
 
 
-
-
-
-land_use_pattern = "\\A\\s*(" + "|".join(LAND_USES) + ")\\s*(:\\s*(\\d+)\\s*)?\\Z"
-
-
-
-
-N_LAND_USES = len(LAND_USES)
+OPS_DICT = {
+    lu:op
+    for lu, op in zip(LUS, OPS)
+}
 
 
 
 
 
-N = max([len(x) for x in LAND_USES])
-F_LAND_USES        = [("{:<" + str(N)     + "}").format(x) for x in LAND_USES]
-F_LAND_USES_QUOTED = [("{:<" + str(N + 2) + "}").format("\"" + x + "\"") for x in LAND_USES]
+# to specify a non-random land use cellular automata, specify an array of strings
+# matching this Perl regular expression:
+lu_pattern = "\\A\\s*(" + "|".join(LUS) + ")\\s*(:\\s*(\\d+)\\s*)?\\Z"
+#             ^^^                                                 ^^^ start and end of the string
+#                ^^^^                       ^^^^  ^^^^      ^^^^      any number of whitespace characters
+#                         ^^^^^^^^^^^^^                               one of the land use strings from above
+#                                                ^     ^^^^           a colon, and the age of the land use cell
+#                                                                ^    the colon and age are optional
+#                    ^^^^^^^^^^^^^^^^^^^^^^^                          group 0, the land use string
+#                                               ^^^^^^^^^^^^^^^^^     group 1, unused
+#                                                     ^^^^^^          group 2, the age of the land use cell
+
+
+
+
+
+##N_LUS = len(LUS)
+
+
+
+
+
+N = max([
+    len(lu)
+    for lu in LUS
+])
+F_LUS   = [
+    ("{:<" + str(N)     + "}").format(lu)
+    for lu in LUS
+]
+del N
+
+
+tmp = [
+    repr(lu)
+    for lu in LUS
+]
+N = max([
+    len(lu)
+    for lu in tmp
+])
+F_LUS_Q = [
+    ("{:<" + str(N)     + "}").format(lu)
+    for lu in tmp
+]
+del tmp
 del N
 
 
@@ -49,27 +98,71 @@ del N
 class LandUseCell:
     
     
+    def __init__(self, land_use, age = 0):
+        
+        
+        """
+        __init__                                                    Python Documentation
+
+        Initialize an Object of Class "LandUseCell"
+
+
+
+        Description:
+
+        The constructor for class "LandUseCell" representing a cell in a land use
+        cellular automata.
+
+
+
+        Usage:
+
+        LandUseCell(land_use, age = 0)
+
+
+
+        Arguments:
+
+        land_use
+
+            integer or string; the land use type of the cell.
+
+        age
+
+            non-negative integer; the age of the cell.
+        """
+        
+        
+        self.__init2__(land_use, age)
+        return
+    
+    
     def __init2__(self, land_use, age = 0, check = True):
         
         
         if check:
-            if isinstance(land_use, bool | int | float):
+            if isinstance(land_use, bool | int | float | complex):
                 land_use = int(land_use)
-                if not (land_use in range(N_LAND_USES)):
+                if land_use not in OPS:
                     raise ValueError("invalid 'land_use'")
             
             
             elif isinstance(land_use, str):
-                for i in range(N_LAND_USES):
-                    if land_use == LAND_USES[i]:
-                        land_use = i
-                        break
                 
                 
-                if isinstance(land_use, str):
-                    raise ValueError("invalid 'land_use'")
-            
-            
+                land_use = OPS_DICT[land_use]
+                
+                
+##                for i in range(N_LUS):
+##                    if land_use == LUS[i]:
+##                        land_use = i
+##                        break
+##                
+##                
+##                if isinstance(land_use, str):
+##                    raise ValueError("invalid 'land_use'")
+                
+                
             else:
                 raise ValueError("invalid 'land_use'")
             
@@ -86,28 +179,176 @@ class LandUseCell:
         return
     
     
-    def __init__(self, land_use, age = 0):
-        self.__init2__(land_use, age)
-        return
-    
-    
-    def __repr__(self):
-        return f"LandUseCell({F_LAND_USES_QUOTED[self.land_use]}, age = {self.age})"
+    @staticmethod
+    def from_string(x):
+        
+        
+        """
+        from_string                                                 Python Documentation
+
+        Convert a String to LandUseCell
+
+
+
+        Description:
+
+        Convert a string specifying a land use type and age into a LandUseCell.
+
+
+
+        Usage:
+
+        from_string(x)
+
+
+
+        Arguments:
+
+        x
+
+            string to convert to LandUseCell.
+
+
+
+        Details:
+
+        The string should follow this pattern:
+        * one of the land use types ("water", "earth", "fire", "tree", ...)
+        * optionally, a colon and an integer (the age of the cell)
+
+        Whitespace may be added where desired.
+
+
+
+        Value:
+
+        An object of class "LandUseCell"
+        """
+        
+        
+        temp = re.search(lu_pattern, x)
+        if temp is None:
+            raise ValueError(f"invalid land use string '{x}'")
+        temp = temp.groups()
+        return LandUseCell(land_use = temp[0], age = temp[2])
     
     
     def __str__(self):
-        return f"{F_LAND_USES[self.land_use]}:{self.age}"
+        
+        
+        """
+        __str__                                                     Python Documentation
+
+        Land Use Cell Conversion
+
+
+
+        Description:
+
+        Convert a land use cell to its string representation.
+
+
+
+        Usage:
+
+        str(self)
+        repr(self)
+
+
+
+        Details:
+
+        The string representation will include the land use name and the age.
+
+
+
+        Value:
+
+        a string.
+        """
+        
+        
+        return f"{F_LUS[self.land_use]}:{self.age}"
+    
+    
+    def __repr__(self):
+        return f"LandUseCell({F_LUS_Q[self.land_use]}, age = {self.age})"
+    
+    
+    __repr__.__doc__ = __str__.__doc__
     
     
     def __copy__(self):
+        
+        
+        """
+        __copy__                                                    Python Documentation
+
+        Create a Copy of a Land Use Cell
+
+
+
+        Description:
+
+        Create a copy of a land use cell.
+
+
+
+        Usage:
+
+        copy.copy(self)
+        self.copy()
+
+
+
+        Value:
+
+        An object of class "LandUseCell".
+        """
+        
+        
         return _LandUseCell_no_check(self.land_use, self.age)
     
     
-    def copy(self):
-        return _LandUseCell_no_check(self.land_use, self.age)
+    copy = __copy__
     
     
-    def random_cell():
+    @staticmethod
+    def random():
+        
+        
+        """
+        random                                                      Python Documentation
+
+        Create a Random Land Use Cell
+
+
+
+        Description:
+
+        Create a land use cell with a random land use type and age.
+
+
+
+        Usage:
+
+        LandUseCell.random()
+
+
+
+        Details:
+
+        Each land use type has a probability of appearing as indicated in 'PROBS'.
+        The age will be a number from 0 to 24 inclusive.
+
+
+
+        Value:
+
+        An object of class "LandUseCell".
+        """
+        
+        
         return _LandUseCell_no_check(
             numpy.random.choice(OPS, p = PROBS),
             numpy.random.randint(25)
@@ -133,50 +374,161 @@ class LandUse(ca.CA):
     
     
     def __init__(self, shape = None, neighbour_order = None, lattice = None):
-        if not (lattice is None):
-            if not (shape is None):
-                raise ValueError("only one of 'shape' and 'lattice' can be used")
+        
+        
+        """
+        __init__                                                    Python Documentation
+        
+        Initialize an Object of Class "LandUse"
+        
+        
+        
+        Description:
+        
+        The constructor for class "LandUse" representing a lattice of land use types.
+        
+        
+        
+        Usage:
+        
+        LandUse(shape = None, neighbour_order = None, lattice = None)
+        
+        
+        
+        Arguments:
+        
+        shape
+        
+            integer or tuple of integers; the shape of the lattice.
+        
+        neighbour_order
+        
+            integer; how should the cells behave with their neighbouring cells?
+        
+        lattice
+        
+            an object of class numpy.ndarray; an alternative way to specify the state
+            of the land use lattice. Should be all strings matching 'lu_pattern', see
+            help(LandUseCell.from_string)
+        
+        
+        
+        Details:
+        
+        You must provide either 'shape' or 'lattice', but not both.
+
+        Currently, only 2D land use cellular automata are supported.
+        """
+        
+        
+        nargs = (shape is not None) + (lattice is not None)
+        if nargs < 1:
+            raise ValueError("provide either 'shape' or 'lattice'")
+        if nargs > 1:
+            raise ValueError("only one of 'shape' and 'lattice' can be used")
+        which = "shape" if (shape is not None) else "lattice"
+        
+        
+        if shape is not None:
+            shape = numpy.empty(shape).shape
+        else:
             lattice = numpy.asarray(lattice, dtype = str)
             shape = lattice.shape
-        else:
-            shape = numpy.empty(shape).shape
         if len(shape) != 2:
-            raise NotImplementedError(f"invalid 'shape', {len(shape)} dimensional land use automata are not yet implemented")
+            raise NotImplementedError(f"invalid '{which}', {len(shape)} dimensional land use cellular automata are not yet implemented")
         super().__init__(
             shape = shape,
             cell_type = LandUseCell,
             neighbour_order = neighbour_order
         )
-        if not (lattice is None):
-            shape = self.lattice.shape
-            self.lattice.shape = (self.lattice.size,)
-            indx = -1
-            for x in lattice.ravel():
-                temp = re.search(land_use_pattern, x)
-                if temp is None:
-                    raise ValueError(f"invalid land use string '{xx}'")
-                temp = temp.groups()
-                indx += 1
-                self.lattice[indx] = LandUseCell(land_use = temp[0], age = temp[2])
-            self.lattice.shape = shape
-##            for indx in numpy.ndindex(self.lattice.shape):
-##                temp = re.search(land_use_pattern, lattice[indx])
-##                if temp is None:
-##                    raise ValueError(f"invalid land use string '{xx}'")
-##                temp = temp.groups()
-##                self.lattice[indx] = LandUseCell(land_use = temp[0], age = temp[2])
+        
+        
+        if lattice is not None:
+            for indx in numpy.ndindex(self.lattice.shape):
+                self.lattice[indx] = LandUseCell.from_string(lattice[indx])
         else:
             for indx in numpy.ndindex(self.lattice.shape):
-                self.lattice[indx] = LandUseCell.random_cell()
+                self.lattice[indx] = LandUseCell.random()
         return
     
     
-    def land_use_lattice(self):
-        return numpy.array([x.land_use for x in self.lattice.ravel()]).reshape(self.lattice.shape)
+    def __repr__(self):
+        
+        
+        """
+        __repr__                                                    Python Documentation
+
+        Cellular Automata Conversion
+
+
+
+        Description:
+
+        Convert a cellular automata to its string representation.
+
+
+
+        Usage:
+        
+        str(self)
+        repr(self)
+
+
+
+        Details:
+
+        The string representation will include the lattice, the lattice dimensions, and
+        the cell type.
+
+
+
+        Value:
+
+        a string.
+        """
+        
+        
+        return f"LandUse(lattice = {repr(self.lattice)}, neighbour_order = {repr(self.op)})"
+    
+    
+##    def land_use_lattice(self):
+##        return numpy.array([x.land_use for x in self.lattice.ravel()]).reshape(self.lattice.shape)
     
     
     def colour_lattice(self):
+        
+        
+        """
+        colour_lattice                                              Python Documentation
+
+        Convert a Land Use Lattice to a Colour Lattice
+
+
+
+        Description:
+
+        Convert a land use cellular automata to its colour representation,
+        for use with matplotlib.pyplot.imshow
+
+
+
+        Usage:
+
+        colour_lattice()
+        color_lattice()
+
+
+
+        Value:
+
+        A numpy.ndarray with shape 'self.lattice.shape + (4,)' and dtype int (from 0 to 255).
+        """
+        
+        
         return numpy.array([COLS[x.land_use] for x in self.lattice.ravel()]).reshape(self.lattice.shape + (4,))
+    
+    
+    color_lattice = colour_lattice
     
     
 ##    def update(self, x, indx):
@@ -239,6 +591,57 @@ class LandUse(ca.CA):
     
     
     def update(self, old, new, indx):
+        
+        
+        """
+        update                                                      Python Documentation
+
+        Update A Land Use Cell
+
+
+
+        Description:
+
+        Update the state of a land use cell (deterministically or randomly).
+
+
+
+        Usage:
+
+        update(old, new, indx)
+        update_random(x, indx)
+
+
+
+        Arguments:
+
+        old, new, indx, x
+
+            see help(CA.update)
+
+
+
+        Details:
+
+        For 'update', if the cell to update is:
+        * earth type, it will turn into a tree if there is a nearby water or tree cell
+              which is old enough is found
+        * fire  type, it will extinguish itself if too old
+        * tree  type, it will ignite itself if too old or a nearby fire which is old
+              enough is found
+
+        For 'update_random', the rules are similar, except that instead of based
+        deterministically on age, they are based on decaying exponentials of age
+        compared against random numbers.
+
+
+   
+        Value:
+
+        None.
+        """
+        
+        
         xx = new[indx] = old[indx].copy()
         
         
@@ -352,8 +755,16 @@ class LandUse(ca.CA):
         return
     
     
+    update.__doc__ = update_random.__doc__
+    
+    
     def plot(self):
         return matplotlib.pyplot.imshow(self.colour_lattice())
+    
+    
+##    def show(self, *args, **kwargs):
+##        self.plot(*args, **kwargs)
+##        return matplotlib.pyplot.show()
     
     
     def animate(self, which = None):
@@ -361,12 +772,12 @@ class LandUse(ca.CA):
             def fun(frame):
                 self.evolve()
                 im.set_array(self.colour_lattice())
-                return im,
+                return (im,)
         elif which == "random":
             def fun(frame):
                 self.evolve_random()
                 im.set_array(self.colour_lattice())
-                return im,
+                return (im,)
         
         fig = matplotlib.pyplot.figure()
         im = self.plot()
