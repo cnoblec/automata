@@ -21,7 +21,7 @@ INFO = np.array([
     [LEFT  := 3, "green" ],
     [UP    := 4, "purple"]
 ], dtype = object)
-DIRS = INFO[:, 0]
+DIRECTIONS = INFO[:, 0]
 COLS = INFO[:, 1]
 CMAP = ListedColormap(COLS)
 del INFO
@@ -45,7 +45,7 @@ class Traffic(ca.CA):
         
         
         if shape is not None:
-            shape = numpy.empty(shape).shape
+            shape = np.empty(shape).shape
         else:
             lattice = np.asarray(lattice, dtype = int)
             shape = lattice.shape

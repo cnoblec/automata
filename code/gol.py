@@ -1,4 +1,4 @@
-from turtle import color
+from typing import Literal
 import ca
 import matplotlib.pyplot as plt
 import matplotlib.animation
@@ -29,7 +29,7 @@ class Life(ca.CA):
         new[indx] = (cur and cells >= 2 and cells <= 3) or (not cur and cells == 3)
         return
 
-    def add_shape(self, indx, pattern, fliph=False, flipv=False, transpose=False):
+    def add_shape(self, indx, pattern: Literal["glider", "blinker", "beacon", "pulsar"], fliph=False, flipv=False, transpose=False):
         # indx of top left corner of pattern block
         patterns =    {
                         "glider":   np.array([  [0,1,0],
@@ -77,9 +77,20 @@ class Life(ca.CA):
                             cmap=cmap,
                             vmin=0,
                             vmax=1)
-        plt.axis(False)
+        # plt.axis(False)
         plt.axis("tight")
         plt.axis("image")
+        ax = plt.gca()
+        ax.grid(True, 'major', linewidth=2)
+        ax.set_xticks(np.arange(-.5, len(self.lattice), 1))
+        ax.set_yticks(np.arange(-.5, len(self.lattice), 1))
+        plt.tick_params(which='both',
+                        bottom=False,
+                        top=False,
+                        left=False,
+                        right=False,
+                        labelbottom=False,
+                        labelleft=False) 
 
         def func(frame):
             self.evolve()

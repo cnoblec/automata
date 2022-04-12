@@ -154,7 +154,7 @@ class LandUse(ca.CA):
             for x in lattice.ravel():
                 temp = re.search(land_use_pattern, x)
                 if temp is None:
-                    raise ValueError(f"invalid land use string '{xx}'")
+                    raise ValueError(f"invalid land use string '{x}'")
                 temp = temp.groups()
                 indx += 1
                 self.lattice[indx] = LandUseCell(land_use = temp[0], age = temp[2])
