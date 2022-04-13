@@ -9,58 +9,27 @@ import matplotlib.colors as colours
 import matplotlib
 matplotlib.use("TkAgg")
 
-# Define class for a car cell:
-class CarCell:
-
-    car_dict = {
-        0 : "empty", 
-        1 : "right",
-        2 : "down",
-        3 : "left",
-        4 : "up",
-        "empty" : 0,
-        "right" : 1,
-        "down"  : 2,
-        "left"  : 3,
-        "up"    : 4,
-    }
-
-    car_colours = {
-        "empty" : "white",
-        "right" : "red",
-        "down"  : "blue",
-        "left"  : "green",
-        "up"    : "purple"
-    }
-
-    def __init__(self, val=None, direction=None):
-        self.val = val
-        self.dir = direction
-        
-        if val is None:
-            self.val = car_dict[direction]
-        if direction is None:
-            self.dir = car_dict[val]
-
-        self.col = car_colours[self.dir]
 
 # Define subclass of CA for traffic:
 class Traffic(ca.CA):
 
+    # This dictionary gives the index shift to find the neighbour 
+    # given the car's direction
     car_dict = {
-        0 : (0,0), 
-        1 : (0,+1),
-        2 : (+1,0),
-        3 : (0,-1),
-        4 : (-1,0),
+        0 : ( 0,  0), 
+        1 : ( 0, +1),
+        2 : (+1,  0),
+        3 : ( 0, -1),
+        4 : (-1,  0),
     }
 
+    # This dictionary 
     car_arrows = {
         0 : '',
-        1 : '→',
-        2 : '↓',
-        3 : '←',
-        4 : '↑'
+        1 : '\u2192',
+        2 : '\u2193',
+        3 : '\u2190',
+        4 : '\u2191'
     }
 
     car_cmap = ListedColormap(['white', 'red','blue','green','purple'])
@@ -159,9 +128,7 @@ init_lattice = np.array([[0,0,2,0,0],
                          [0,0,0,0,3],
                          [0,4,0,0,0]])
 test = Traffic(init_lattice=init_lattice)
-# test.display()
-# test.update()
-# test.update()
+
 a = test.animation(10)
 writergif = ani.PillowWriter(fps=1) 
 a.save("test1.gif", writer=writergif)
