@@ -5,6 +5,7 @@ import matplotlib.animation
 import matplotlib.pyplot
 import numpy as np
 import traffic
+from traffic import Traffic
 
 
 import importlib
@@ -36,7 +37,7 @@ init_lattice = np.array([[0,0,2,0,0],
 test = Traffic(init_lattice=init_lattice)
 
 a = test.animation(10)
-writergif = ani.PillowWriter(fps=1) 
+writergif = a.PillowWriter(fps=1) 
 a.save("test1.gif", writer=writergif)
 
 
