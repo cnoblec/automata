@@ -35,10 +35,11 @@ class Traffic(ca.CA):
     car_cmap = ListedColormap(['white', 'red','blue','green','purple'])
 
     def __init__(self, init_lattice):
-        self.lattice = init_lattice
+        #self.lattice = init_lattice
+        super().__init__(cell_type = int, lattice = init_lattice)
         self.shape = init_lattice.shape
 
-    def update(self):
+    def update_lattice(self):
         temp_lattice = self.empty()
 
         indices = ca.arrayIndexes(self.shape)
@@ -93,7 +94,7 @@ class Traffic(ca.CA):
                 matplotlib.artist.Artist.remove(ax.texts[0])
 
             # Update lattice and image
-            self.update()
+            self.update_lattice()
             im.set_array(self.lattice)
 
             # Set new title with step number
