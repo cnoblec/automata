@@ -37,7 +37,7 @@ class Traffic(ca.CA):
     def __init__(self, init_lattice):
         #self.lattice = init_lattice
         super().__init__(cell_type = int, lattice = init_lattice)
-        self.shape = init_lattice.shape
+        self.shape = self.lattice.shape
 
     def update_lattice(self):
         temp_lattice = self.empty()
