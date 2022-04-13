@@ -1,8 +1,9 @@
 import ca
+import gol
 import land_use
 import matplotlib.animation
 import matplotlib.pyplot
-import numpy
+import numpy as np
 import traffic
 
 
@@ -55,3 +56,14 @@ print(x)
 ani = x.animate("random")
 ##ani.save("../output/test.gif")
 matplotlib.pyplot.show()
+
+
+if __name__ == '__main__':
+    
+    game = gol.Life(shape=(20,20))
+    game.add_shape((3,3),"pulsar")
+    ani = game.animate(frames=3, interval=500,filename="../output/gol_pulsar.gif")
+    game = gol.Life(shape=(10,10))
+    game.add_shape((3,3),"glider")
+    ani = game.animate(frames=40, interval=200,filename="../output/gol_glider.gif")
+    # matplotlib.pyplot.show()

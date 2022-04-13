@@ -114,7 +114,6 @@ class Traffic(ca.CA):
                 text.set_path_effects([PathEffects.withStroke(linewidth=1, foreground='black')])
 
             return im,
-
         return ani.FuncAnimation(
             fig, animate, init_func = init,
             frames = np.arange(N_steps),
