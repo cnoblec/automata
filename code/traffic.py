@@ -53,7 +53,7 @@ class Traffic(ca.CA):
             if temp_lattice[neighbour] == 0 and self.lattice[neighbour] == 0:
                 temp_lattice[neighbour] = ival
             else:
-                temp_lattice[indx] = ival
+                temp_lattice[i] = ival
         self.lattice = temp_lattice
 
     def update(self, old, new, indx):
