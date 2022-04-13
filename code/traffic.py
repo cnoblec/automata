@@ -121,14 +121,3 @@ class Traffic(ca.CA):
             blit = True, interval=1000,
         )
 
-
-init_lattice = np.array([[0,0,2,0,0],
-                         [0,0,0,0,0],
-                         [0,0,1,0,0],
-                         [0,0,0,0,3],
-                         [0,4,0,0,0]])
-test = Traffic(init_lattice=init_lattice)
-
-a = test.animation(10)
-writergif = ani.PillowWriter(fps=1) 
-a.save("test1.gif", writer=writergif)
