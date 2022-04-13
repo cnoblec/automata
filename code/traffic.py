@@ -1,185 +1,136 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap
-
-
-
-
+import matplotlib.patheffects as PathEffects
 
 import ca
 import matplotlib.animation as ani
-import matplotlib.colors as col
+import matplotlib.colors as colours
+import matplotlib
+matplotlib.use("TkAgg")
 
 
-
-
-
-INFO = np.array([
-    [NOCAR := 0, "white" ],
-    [RIGHT := 1, "red"   ],
-    [DOWN  := 2, "blue"  ],
-    [LEFT  := 3, "green" ],
-    [UP    := 4, "purple"]
-], dtype = object)
-DIRECTIONS = INFO[:, 0]
-COLS = INFO[:, 1]
-CMAP = ListedColormap(COLS)
-del INFO
-
-
-
-
-
+# Define subclass of CA for traffic:
 class Traffic(ca.CA):
-    
-    
-    def __init__(self, shape = None, lattice = None):
-        
-        
-        nargs = (shape is not None) + (lattice is not None)
-        if nargs < 1:
-            raise ValueError("provide either 'shape' or 'lattice'")
-        if nargs > 1:
-            raise ValueError("only one of 'shape' and 'lattice' can be used")
-        which = "shape" if (shape is not None) else "lattice"
-        
-        
-        if shape is not None:
-            shape = np.empty(shape).shape
-        else:
-            lattice = np.asarray(lattice, dtype = int)
-            shape = lattice.shape
-        do_check = True
-        if len(shape) == 1:
-            if lattice is not None:
-                if   np.isin(lattice, [NOCAR, RIGHT, LEFT]).all():
-                    shape = (1,) + shape
-                elif np.isin(lattice, [NOCAR, DOWN , UP  ]).all():
-                    shape = shape + (1,)
-                else:
-                    raise ValueError("invalid 'lattice', 1 dimensional traffic should have all left-right or down-up")
-                do_check = False  # because we already did it
-            else:
-                shape = (1,) + shape
-        if len(shape) != 2:
-            raise NotImplementedError(f"invalid '{which}', {len(shape)} dimensional traffic automata are not yet implemented")
-        if (lattice is not None) and do_check:
-            if not np.isin(lattice, DIRECTIONS).all():
-                raise ValueError(f"invalid 'lattice', contains directions outside of {DIRECTIONS}")                
-        super().__init__(
-            shape = shape,
-            cell_type = int,
-            neighbour_order = None
-        )
-        if lattice is not None:
-            tmp = self.lattice.ravel()
-            tmp[:] = lattice.ravel()
-        else:
-            for indx in np.ndindex(self.lattice.shape):
-                self.lattice[indx] = np.random.choice(
-                    DIRECTIONS
-                )
-        return
-    
-    
-    def neighbour(self, indx, direction):
-        if   direction == RIGHT:
-            return (indx[0]    , indx[1] + 1)
-        elif direction == DOWN:
-            return (indx[0] + 1, indx[1]    )
-        elif direction == LEFT:
-            return (indx[0]    , indx[1] - 1)
-        elif direction == UP:
-            return (indx[0] - 1, indx[1]    )
-        raise ValueError("invalid 'direction' argument")
-        return
-    
-    
-    def update(self, old, new, indx):
-        xx = old[indx]
-        
-        
-        if xx == NOCAR:
-            return
-        
-        
-        next_pos = self.neighbour(indx, xx)
-        if (old[next_pos] == NOCAR) and \
-           (new[next_pos] == NOCAR):
-            new[indx] = NOCAR
-            new[next_pos] = xx
-            return
-        
-        
-        new[indx] = xx
-        return
 
+    # This dictionary gives the index shift to find the neighbour 
+    # given the car's direction
+    car_dict = {
+        0 : ( 0,  0), 
+        1 : ( 0, +1),
+        2 : (+1,  0),
+        3 : ( 0, -1),
+        4 : (-1,  0),
+    }
 
-    def plot(self):
-        x = self.lattice
-        im = plt.imshow(
-            x,
-            cmap = CMAP,
-            vmin = 0, vmax = 4
-        )
-        arrows = []
-        indxs = []
-        deltas = []
-        for indx in np.ndindex(x.shape):
-            xx = x[indx]
-            if xx == NOCAR:
+    # This dictionary 
+    car_arrows = {
+        0 : '',
+        1 : '\u2192',
+        2 : '\u2193',
+        3 : '\u2190',
+        4 : '\u2191'
+    }
+
+    car_cmap = ListedColormap(['white', 'red','blue','green','purple'])
+
+    def __init__(self, init_lattice):
+        #self.lattice = init_lattice
+        super().__init__(cell_type = int, lattice = init_lattice)
+        self.shape = self.lattice.shape
+
+    def update_lattice(self):
+        temp_lattice = self.empty()
+
+        indices = ca.arrayIndexes(self.shape)
+        for i in indices:
+            ival = self.lattice[i]
+            if ival == 0:
                 continue
-            indxs.append(indx)
-            if xx == RIGHT:
-                delta = ( 0,  1)
-            elif xx == DOWN:
-                delta = ( 1,  0)
-            elif xx == LEFT:
-                delta = ( 0, -1)
-            elif xx == UP:
-                delta = (-1,  0)
+            nf = Traffic.car_dict[ival]
+            neighbour = (i[0]+nf[0], i[1]+nf[1])
+
+            if temp_lattice[neighbour] == 0 and self.lattice[neighbour] == 0:
+                temp_lattice[neighbour] = ival
             else:
-                raise ValueError(f"invalid direction {xx}")
-            deltas.append(delta)
-            arrows.append(plt.arrow(
-                indx[1] - delta[1]/4.0, indx[0] - delta[0]/4.0,
-                delta[1]/2.0, delta[0]/2.0,
-                length_includes_head = True,
-                head_width = 0.15, width = 0.0625,
-                color = "white", ec = "black"
-            ))
-        SHAPE = x.shape
-        return (im, arrows, indxs, deltas, SHAPE)
+                temp_lattice[i] = ival
+        self.lattice = temp_lattice
+
+    def update(self, old, new, indx):
+        ival = old[indx]
+        if ival == 0:
+            return
+        nf = Traffic.car_dict[ival]
+        neighbour = (indx[0]+nf[0], indx[1]+nf[1])
+
+        if new[neighbour] == 0 and old[neighbour] == 0:
+            new[neighbour] = ival
+        else:
+            new[indx] = ival
+        return
+
+    def display(self, title=''):
+        fig, ax = plt.subplots(figsize=(10,7))
+        im = ax.imshow(self.lattice, cmap=Traffic.car_cmap, vmin=0, vmax=4)
+        ax.set_title(title)
+
+        indices = ca.arrayIndexes(self.shape)
+        arrows = []
+        for i in indices:
+            ival = self.lattice[i]
+            label = Traffic.car_arrows[ival]
+            x = i[1]
+            if x < 0:
+                x += self.shape[0]
+            y = i[0]
+            if y < 0:
+                y += self.shape[1]
+
+            text = ax.text(x, y, label, ha="center", va="center", color="w", size=25)
+            text.set_path_effects([PathEffects.withStroke(linewidth=1, foreground='black')])
+            arrows.append(text)
+
+        plt.show()
+        return fig, ax, im, arrows
     
-    
-    def animate(self, frames = 200, interval = 1000):
-        fig = plt.figure()
-        im, arrows, indxs, deltas, SHAPE = self.plot()
-        def fun(frame):
-            self.evolve()
-            im.set_array(self.lattice)
-            for arrow , indx , delta , i                  in zip(
-                arrows, indxs, deltas, range(len(arrows))
-            ):
-                # if the cell has no car, the car has moved, so
-                # update indxs[i] and move the arrow
-                if self.lattice[indx] == NOCAR:
-                    indxs[i] = indx = ( (indx[0] + delta[0]) % SHAPE[0] , (indx[1] + delta[1]) % SHAPE[1] )
-                    arrow.set_data(
-                        x = indx[1] - delta[1]/4.0,
-                        y = indx[0] - delta[0]/4.0
-                    )
-            return (im, *arrows)
+    def animation(self, N_steps, title=''):
+        fig, ax, im, arrows = self.display(title)
+
         def init():
-            # i can't believe this fixes the issue, it feels like a joke
             im.set_data(self.lattice)
-            return (im,)
+            return im,
+
+        def animate(frame):
+            # Clear arrows
+            c = len(ax.texts)
+            for _ in range(c):
+                matplotlib.artist.Artist.remove(ax.texts[0])
+
+            # Update lattice and image
+            self.update_lattice()
+            im.set_array(self.lattice)
+
+            # Set new title with step number
+            ax.set_title(f"{title} {frame} steps")
+
+            # Add new arrows
+            indices = ca.arrayIndexes(self.shape)
+            for i in indices:
+                ival = self.lattice[i]
+                label = Traffic.car_arrows[ival]
+                x = i[1]
+                if x < 0:
+                    x += self.shape[0]
+                y = i[0]
+                if y < 0:
+                    y += self.shape[1]
+                text = ax.text(x, y, label, ha="center", va="center", color="w", size=25)
+                text.set_path_effects([PathEffects.withStroke(linewidth=1, foreground='black')])
+
+            return im,
         return ani.FuncAnimation(
-            fig, fun, init_func = init,
-            frames = np.arange(frames),
-            blit = True, interval = interval
+            fig, animate, init_func = init,
+            frames = np.arange(N_steps),
+            blit = True, interval=1000,
         )
-    
-    
-    pass
 

@@ -15,28 +15,29 @@ land_use = importlib.reload(land_use)
 traffic  = importlib.reload(traffic)
 
 
-traffic.Traffic(lattice = [1, 0, 1, 0, 1, 0]).animate()
+traffic.Traffic(lattice = [1, 0, 1, 0, 1, 0]).animation(10)
 matplotlib.pyplot.show()
 
 
-traffic.Traffic(lattice = [1, 1, 1, 1, 0, 0, 1, 0]).animate()
+traffic.Traffic(lattice = [1, 1, 1, 1, 0, 0, 1, 0]).animation(10)
 matplotlib.pyplot.show()
 
 
-traffic.Traffic(lattice = [1, 0, 0, 0, 0, 0, 0, 0]).animate()
+traffic.Traffic(lattice = [1, 0, 0, 0, 0, 0, 0, 0]).animation(10)
 matplotlib.pyplot.show()
 
 
-ani = traffic.Traffic(
-    lattice = [
-        [3, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0],
-        [1, 0, 2, 1, 0],
-        [0, 4, 0, 0, 0],
-        [0, 0, 0, 0, 0],
-    ]
-).animate(frames = 20, interval = 1000)
-ani.save("../output/traffic-demo.gif")
+
+init_lattice = np.array([[0,0,2,0,0],
+                         [0,0,0,0,0],
+                         [0,0,1,0,0],
+                         [0,0,0,0,3],
+                         [0,4,0,0,0]])
+test = Traffic(init_lattice=init_lattice)
+
+a = test.animation(10)
+writergif = ani.PillowWriter(fps=1) 
+a.save("test1.gif", writer=writergif)
 
 
 ##print(land_use.LandUse(lattice = numpy.array([

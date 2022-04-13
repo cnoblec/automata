@@ -2,8 +2,6 @@ import numpy
 
 
 
-
-
 def arrayIndexes(shape):
     
     
@@ -47,6 +45,9 @@ def arrayIndexes(shape):
     This function has similar behaviour to 'list(numpy.ndindex(shape))'. The
     difference is that 'arrayIndexes' uses negative integers for the second half of
     each dimension.
+
+    This helps to avoid issues when dealing with neighbours
+    (no need to use a cycler or a remainder).
     
     
     
@@ -56,107 +57,173 @@ def arrayIndexes(shape):
     """
     
     
+    # each line has a comment afterwards showing what is created
+    # specifically for 'shape = (3, 4, 5)'
+    
+    
 ##    x = [numpy.arange(n) for n in shape]
+##    # [array([0, 1, 2]), array([0, 1, 2, 3]), array([0, 1, 2, 3, 4])]
     
     
-    # similar to the above code, but uses a split of positive and negative indexes
-    x = [numpy.concatenate((
-        numpy.arange(0,  (n + 1)//2),
-        numpy.arange(-(n - 1)//2, 0)
-    )) for n in shape]
+    # similar to the above code, but uses half positive indexes and half negative indexes
+    x = [
+        numpy.concatenate((
+            numpy.arange(0,  (n + 1)//2),
+            numpy.arange(-(n - 1)//2, 0)
+        ))
+        for n in shape
+    ]
+    # [array([ 0,  1, -1]), array([ 0,  1, -2, -1]), array([ 0,  1,  2, -2, -1])]
     
     
     # each element of the above arrays must be repeated 'each' times
     each = numpy.cumprod((1,) + shape[:0:-1])[::-1]
+    # array([20,  5,  1])
     
     
     # after repeating the array with 'each',
     # the entire array must be repeated 'times' times
     times = numpy.prod(shape)//(shape * each)
+    # array([ 1,  3, 12])
+    
+    
     return list(zip(*[
-        numpy.concatenate([x_.repeat(each_)] * times_) for x_, each_, times_ in zip(
-            x, each, times
-        )
+        numpy.concatenate([xx.repeat(eeach)] * ttimes)
+        for xx, eeach, ttimes in zip(x, each, times)
     ]))
 
 
+##raise ValueError("I changed the names of the NEIGHBOURSOP objects, they are now all named like NEIGHBOURS{n_dimensions}D{nearest_order}OP, sorry for the inconvenience!")
 
 
+# each NEIGHBOUR consists of:
+# * an OP, an integer to identify the neighbour order
+# * a function which will return a list of the neighbouring indexes
+#
+# the OP values should be referred to by name only, the actual values could
+# change at any time, but the names should not change
 
 NEIGHBOURS = numpy.array([
     
     
     # 1D neighbours
     numpy.array([
-        [(NEIGHBOURS1D2OP := 0), (lambda indx : [
+
+
+        # first nearest neighbours in 1D
+        [(NEIGHBOURS1D1OP := 0), (lambda indx : [
+                                      (indx[0] - 1,),  # left  1
                                       (indx[0] + 1,),  # right 1
-                                      (indx[0] - 1,)   # left  1
                                   ])
-        ]
+        ],
+
+        
     ], dtype = object),
     
     
     # 2D neighbours
     numpy.array([
-        [(NEIGHBOURS2D4OP := 1), (lambda indx : [
-                                      (indx[0]    , indx[1] + 1),  # right 1
-                                      (indx[0] - 1, indx[1]    ),  # up    1
-                                      (indx[0]    , indx[1] - 1),  # left  1
-                                      (indx[0] + 1, indx[1]    )   # down  1
-                                  ])
-        ],
-        [(NEIGHBOURS2D8OP := 2), (lambda indx : [
-                                      (indx[0]    , indx[1] + 1),  # right 1
-                                      (indx[0] - 1, indx[1] + 1),  # right 1 up   1
-                                      (indx[0] - 1, indx[1]    ),  #         up   1
-                                      (indx[0] - 1, indx[1] - 1),  # left  1 up   1
-                                      (indx[0]    , indx[1] - 1),  # left  1
-                                      (indx[0] + 1, indx[1] - 1),  # left  1 down 1
-                                      (indx[0] + 1, indx[1]    ),  #         down 1
-                                      (indx[0] + 1, indx[1] + 1)   # right 1 down 1
-                                  ])
-        ]
-    ], dtype = object),
 
-    numpy.array([
-        [(NEIGHBOURS3DOPVN := 3),   (lambda indx : [
-                                    (indx[0]    , indx[1]    , indx[2] + 1),  # x + 1 , y     , z
-                                    (indx[0]    , indx[1]    , indx[2] - 1),  # x - 1 , y     , z
-                                    (indx[0]    , indx[1] + 1, indx[2]    ),  # x     , y + 1 , z
-                                    (indx[0]    , indx[1] - 1, indx[2]    ),  # x     , y - 1 , z
-                                    (indx[0] + 1, indx[1]    , indx[2]    ),  # x     , y     , z + 1
-                                    (indx[0] - 1, indx[1]    , indx[2]    ),  # x     , y     , z - 1
+
+        # first nearest neighbours in 2D
+        [(NEIGHBOURS2D1OP := 1), (lambda indx : [
+                                      (indx[0] - 1, indx[1]    ),  # up    1,
+                                      (indx[0]    , indx[1] - 1),  #        , left  1
+                                      (indx[0]    , indx[1] + 1),  #        , right 1
+                                      (indx[0] + 1, indx[1]    ),  # down  1,
                                   ])
         ],
-        [(NEIGHBOURS3DOPMOORE := 4),    (lambda indx : [
-                                        (indx[0]    , indx[1]    , indx[2] + 1),  # x + 1 , y     , z
-                                        (indx[0]    , indx[1] + 1, indx[2] + 1),  # x + 1 , y + 1 , z
-                                        (indx[0]    , indx[1] - 1, indx[2] + 1),  # x + 1 , y - 1 , z
-                                        (indx[0] + 1, indx[1]    , indx[2] + 1),  # x + 1 , y     , z + 1
-                                        (indx[0] - 1, indx[1]    , indx[2] + 1),  # x + 1 , y     , z - 1
-                                        (indx[0] + 1, indx[1] + 1, indx[2] + 1),  # x + 1 , y + 1 , z + 1
-                                        (indx[0] - 1, indx[1] + 1, indx[2] + 1),  # x + 1 , y + 1 , z - 1
-                                        (indx[0] + 1, indx[1] - 1, indx[2] + 1),  # x + 1 , y - 1 , z + 1
-                                        (indx[0] - 1, indx[1] - 1, indx[2] + 1),  # x + 1 , y - 1 , z - 1
-                                        (indx[0]    , indx[1]    , indx[2] - 1),  # x - 1 , y     , z
-                                        (indx[0]    , indx[1] + 1, indx[2] - 1),  # x - 1 , y + 1 , z
-                                        (indx[0]    , indx[1] - 1, indx[2] - 1),  # x - 1 , y - 1 , z
-                                        (indx[0] + 1, indx[1]    , indx[2] - 1),  # x - 1 , y     , z
-                                        (indx[0] - 1, indx[1]    , indx[2] - 1),  # x - 1 , y     , z
-                                        (indx[0] + 1, indx[1] + 1, indx[2] - 1),  # x - 1 , y + 1 , z + 1
-                                        (indx[0] - 1, indx[1] + 1, indx[2] - 1),  # x - 1 , y + 1 , z - 1
-                                        (indx[0] + 1, indx[1] - 1, indx[2] - 1),  # x - 1 , y - 1 , z + 1
-                                        (indx[0] - 1, indx[1] - 1, indx[2] - 1),  # x - 1 , y - 1 , z - 1                                        (indx[0]    , indx[1] + 1, indx[2]    ),  # x     , y + 1 , z
-                                        (indx[0]    , indx[1] + 1, indx[2]    ),  # x     , y + 1 , z
-                                        (indx[0]    , indx[1] - 1, indx[2]    ),  # x     , y - 1 , z
-                                        (indx[0] + 1, indx[1] + 1, indx[2]    ),  # x     , y + 1 , z + 1
-                                        (indx[0] - 1, indx[1] + 1, indx[2]    ),  # x     , y + 1 , z - 1
-                                        (indx[0] + 1, indx[1] - 1, indx[2]    ),  # x     , y - 1 , z + 1
-                                        (indx[0] - 1, indx[1] - 1, indx[2]    ),  # x     , y - 1 , z - 1
-                                        (indx[0] + 1, indx[1]    , indx[2]    ),  # x     , y     , z + 1
-                                        (indx[0] - 1, indx[1]    , indx[2]    ),  # x     , y     , z - 1
+
+
+        # second nearest neighbours in 2D
+        [(NEIGHBOURS2D2OP := 2), (lambda indx : [
+                                      (indx[0] - 1, indx[1] - 1),  # up   1, left  1
+                                      (indx[0] - 1, indx[1]    ),  # up   1,
+                                      (indx[0] - 1, indx[1] + 1),  # up   1, right 1
+                                      (indx[0]    , indx[1] - 1),  #       , left  1
+                                      (indx[0]    , indx[1] + 1),  #       , right 1
+                                      (indx[0] + 1, indx[1] - 1),  # down 1, left  1
+                                      (indx[0] + 1, indx[1]    ),  # down 1,
+                                      (indx[0] + 1, indx[1] + 1),  # down 1, right 1
                                   ])
-        ]
+        ],
+
+        
+    ], dtype = object),
+    
+    
+    # 3D neighbours
+    numpy.array([
+
+
+        # first nearest neighbours in 3D
+        [(NEIGHBOURS3D1OP := 3), (lambda indx : [
+                                      (indx[0] - 1, indx[1]    , indx[2]    ),  # x     , y     , z - 1
+                                      (indx[0]    , indx[1] - 1, indx[2]    ),  # x     , y - 1 , z
+                                      (indx[0]    , indx[1]    , indx[2] - 1),  # x - 1 , y     , z
+                                      (indx[0]    , indx[1]    , indx[2] + 1),  # x + 1 , y     , z
+                                      (indx[0]    , indx[1] + 1, indx[2]    ),  # x     , y + 1 , z
+                                      (indx[0] + 1, indx[1]    , indx[2]    ),  # x     , y     , z + 1
+                                  ])
+        ],
+
+
+        # second nearest neighbours in 3D
+        [(NEIGHBOURS3D2OP := 4), (lambda indx : [
+                                      (indx[0] - 1, indx[1] - 1, indx[2]    ),  # x     , y - 1 , z - 1
+                                      (indx[0] - 1, indx[1]    , indx[2] - 1),  # x - 1 , y     , z - 1
+                                      (indx[0] - 1, indx[1]    , indx[2]    ),  # x     , y     , z - 1
+                                      (indx[0] - 1, indx[1]    , indx[2] + 1),  # x + 1 , y     , z - 1
+                                      (indx[0] - 1, indx[1] + 1, indx[2]    ),  # x     , y + 1 , z - 1
+                                      (indx[0]    , indx[1] - 1, indx[2] - 1),  # x - 1 , y - 1 , z
+                                      (indx[0]    , indx[1] - 1, indx[2]    ),  # x     , y - 1 , z
+                                      (indx[0]    , indx[1] - 1, indx[2] + 1),  # x + 1 , y - 1 , z
+                                      (indx[0]    , indx[1]    , indx[2] - 1),  # x - 1 , y     , z
+                                      (indx[0]    , indx[1]    , indx[2] + 1),  # x + 1 , y     , z
+                                      (indx[0]    , indx[1] + 1, indx[2] - 1),  # x - 1 , y + 1 , z
+                                      (indx[0]    , indx[1] + 1, indx[2]    ),  # x     , y + 1 , z
+                                      (indx[0]    , indx[1] + 1, indx[2] + 1),  # x + 1 , y + 1 , z
+                                      (indx[0] + 1, indx[1] - 1, indx[2]    ),  # x     , y - 1 , z + 1
+                                      (indx[0] + 1, indx[1]    , indx[2] - 1),  # x - 1 , y     , z + 1
+                                      (indx[0] + 1, indx[1]    , indx[2]    ),  # x     , y     , z + 1
+                                      (indx[0] + 1, indx[1]    , indx[2] + 1),  # x + 1 , y     , z + 1
+                                      (indx[0] + 1, indx[1] + 1, indx[2]    ),  # x     , y + 1 , z + 1
+                                  ])
+        ],
+
+
+        # third nearest neighbours in 3D
+        [(NEIGHBOURS3D3OP := 5), (lambda indx : [
+                                      (indx[0] - 1, indx[1] - 1, indx[2] - 1),  # x - 1 , y - 1 , z - 1
+                                      (indx[0] - 1, indx[1] - 1, indx[2]    ),  # x     , y - 1 , z - 1
+                                      (indx[0] - 1, indx[1] - 1, indx[2] + 1),  # x + 1 , y - 1 , z - 1
+                                      (indx[0] - 1, indx[1]    , indx[2] - 1),  # x - 1 , y     , z - 1
+                                      (indx[0] - 1, indx[1]    , indx[2]    ),  # x     , y     , z - 1
+                                      (indx[0] - 1, indx[1]    , indx[2] + 1),  # x + 1 , y     , z - 1
+                                      (indx[0] - 1, indx[1] + 1, indx[2] - 1),  # x - 1 , y + 1 , z - 1
+                                      (indx[0] - 1, indx[1] + 1, indx[2]    ),  # x     , y + 1 , z - 1
+                                      (indx[0] - 1, indx[1] + 1, indx[2] + 1),  # x + 1 , y + 1 , z - 1
+                                      (indx[0]    , indx[1] - 1, indx[2] - 1),  # x - 1 , y - 1 , z
+                                      (indx[0]    , indx[1] - 1, indx[2]    ),  # x     , y - 1 , z
+                                      (indx[0]    , indx[1] - 1, indx[2] + 1),  # x + 1 , y - 1 , z
+                                      (indx[0]    , indx[1]    , indx[2] - 1),  # x - 1 , y     , z
+                                      (indx[0]    , indx[1]    , indx[2] + 1),  # x + 1 , y     , z
+                                      (indx[0]    , indx[1] + 1, indx[2] - 1),  # x - 1 , y + 1 , z
+                                      (indx[0]    , indx[1] + 1, indx[2]    ),  # x     , y + 1 , z
+                                      (indx[0]    , indx[1] + 1, indx[2] + 1),  # x + 1 , y + 1 , z
+                                      (indx[0] + 1, indx[1] - 1, indx[2] - 1),  # x - 1 , y - 1 , z + 1
+                                      (indx[0] + 1, indx[1] - 1, indx[2]    ),  # x     , y - 1 , z + 1
+                                      (indx[0] + 1, indx[1] - 1, indx[2] + 1),  # x + 1 , y - 1 , z + 1
+                                      (indx[0] + 1, indx[1]    , indx[2] - 1),  # x - 1 , y     , z + 1
+                                      (indx[0] + 1, indx[1]    , indx[2]    ),  # x     , y     , z + 1
+                                      (indx[0] + 1, indx[1]    , indx[2] + 1),  # x + 1 , y     , z + 1
+                                      (indx[0] + 1, indx[1] + 1, indx[2] - 1),  # x - 1 , y + 1 , z + 1
+                                      (indx[0] + 1, indx[1] + 1, indx[2]    ),  # x     , y + 1 , z + 1
+                                      (indx[0] + 1, indx[1] + 1, indx[2] + 1),  # x + 1 , y + 1 , z + 1
+                                  ])
+        ],
+
+        
     ], dtype = object)
     
     
@@ -205,7 +272,8 @@ class CA:
         
         cell_type
         
-            a type or a numpy.dtype; the class of the objects in the lattice.
+            a type or a numpy.dtype (or something which can be converted to a numpy.dtype);
+            the class of the objects in the lattice.
         
         lattice
         
@@ -246,23 +314,29 @@ class CA:
         
         
         if shape is not None:
-            if not (isinstance(cell_type, type       ) |
-                    isinstance(cell_type, numpy.dtype)):
-                raise ValueError("invalid 'cell_type' argument")
-            lattice = numpy.empty(shape = shape, dtype = cell_type)
+            if cell_type is None:
+                cell_type = object
+            dtype = numpy.dtype(cell_type)
+            # we want to call 'self.empty' to initialize an empty lattice,
+            # but that relies on the lattice being already initialized
+            # do the same idea without that assumption
+            if   hasattr(self, "fill_value"):
+                lattice = numpy.full (shape, self.fill_value, dtype)
+            elif dtype in [bool, int, float, complex]:
+                lattice = numpy.zeros(shape, dtype)
+            else:
+                lattice = numpy.empty(shape, dtype)
         else:
             if cell_type is None:
                 lattice = numpy.asarray(lattice)
                 cell_type = lattice.dtype
             else:
-                if not (isinstance(cell_type, type       ) |
-                        isinstance(cell_type, numpy.dtype)):
-                    raise ValueError("invalid 'cell_type' argument")
                 lattice = numpy.asarray(lattice, dtype = cell_type)
+            dtype = lattice.dtype
         if lattice.ndim <= 0:
-            raise ValueError("invalid '{which}', cannot use 0 dimensional array for automata")
+            raise ValueError(f"invalid '{which}', cannot use 0 dimensional array for a cellular automata")
         if lattice.ndim > len(OPS_LIST):
-            raise ValueError(f"invalid '{which}', {lattice.ndim} dimensional automata are not yet implemented")
+            raise ValueError(f"invalid '{which}', {lattice.ndim} dimensional cellular automata are not yet implemented")
         
         
         self.cell_type = cell_type
@@ -284,89 +358,170 @@ class CA:
     
     
     def __len__(self):
-        return self.lattice.size
-    
-    
-    def empty(self):
         
         
         """
-        empty                                                       Python Documentation
-        
-        Create a New, Empty Lattice
-        
-        
-        
+        __len__                                                     Python Documentation
+
+        Number of Cells of a "CA"
+
+
+
         Description:
+
+        Get the number of cells in a cellular automata.
+
+
+
+        Usage:
+
+        len(self)
+
+
+
+        Value:
+
+        An integer.
+        """
         
-        Create a new, empty lattice (a temp lattice), useful for evolving the state of
-        a cellular automata.
+        
+        return self.lattice.size
+    
+    
+    def items(self):
         
         
+        """
+        items                                                       Python Documentation
+
+        Get Attributes of Cellular Automata
+
+
+
+        Description:
+
+        Get a tuple of attributes describing the cellular automata. Each attribute is a
+        tuple, the first element being a tag for the attribute, the second a value of
+        the attribute. This is similar in behaviour to dict.items()
+
+
+
+        Usage:
+
+        items()
+
+
+
+        Value:
+
+        A tuple.
+        """
         
+        
+        return (
+                ("lattice"   , self.lattice      ) ,
+                ("dimensions", self.lattice.shape) ,
+                ("cell type" , self.cell_type    ) ,
+        )
+    
+    
+    def __str__(self):
+        
+        
+        """
+        __str__                                                     Python Documentation
+
+        Cellular Automata Conversion
+
+
+
+        Description:
+
+        Convert a cellular automata to its string representation.
+
+
+
         Usage:
         
-        empty()
+        str(self)
+        repr(self)
 
 
 
         Details:
 
-        If the cellular automata has an attribute "fill_value", it will be used with
-        'numpy.full' to create an empty lattice.
-        
-        Otherwise, if the cellular automata's lattice is boolean, integer, float, or
-        complex typed, 'numpy.zeros' will be used to create an empty lattice.
+        The string representation will include the lattice, the lattice dimensions, and
+        the cell type.
 
-        Otherwise, 'numpy.empty' will be used to create an empty lattice.
-        
-        
-        
-        Note:
-        
-        This method can be overridden as necessary by a subclass.
+
+
+        Value:
+
+        a string.
         """
         
         
-        if hasattr(self, "fill_value"):
-            return numpy.full (self.lattice.shape, self.fill_value, self.lattice.dtype)
-        elif self.lattice.dtype in [bool, int, float, complex]:
-            return numpy.zeros(self.lattice.shape, self.lattice.dtype)
+        return f"An object of class \"{self.__class__.__name__}\"\n" + "".join([f"\n{tag}:\n{item}\n" for tag, item in self.items()])
+    
+    
+    def __repr__(self):
+        if isinstance(self.cell_type, type):
+            cell_type = self.cell_type.__name__
         else:
-            return numpy.empty(self.lattice.shape, self.lattice.dtype)
+            cell_type = repr(self.cell_type)
+        return f"CA(cell_type = {cell_type}, lattice = {repr(self.lattice)}, neighbour_order = {repr(self.op)})"
     
     
-    def empty_fun(self):
-        shape = self.lattice.shape
-        dtype = self.lattice.dtype
-        if hasattr(self, "fill_value"):
-            fill_value = self.fill_value
-            return lambda : numpy.full (shape, fill_value, dtype)
-        elif self.lattice.dtype in [bool, int, float, complex]:
-            return lambda : numpy.zeros(shape, dtype)
-        else:
-            return lambda : numpy.empty(shape, dtype)
-    
-    
-    def items(self):
-        return ( ("lattice", self.lattice) ,
-##                 ("cell type", self.cell_type.__name__ if isinstance(self.cell_type, type) else cell_type.__class__.__name__) ,
-                 ("dimensions", self.lattice.shape) )
-    
-    
-    def __str__(self):
-        value = f"An object of class \"{self.__class__.__name__}\"\n"
-        for tag , item in self.items():
-            value += f"\n{tag}:\n{item}\n"
-        return value
+    __repr__.__doc__ = __str__.__doc__
     
     
     def __getitem__(self, indexes):
-        return self.lattice[indexes]
+        
+        
+        """
+        __getitem__                                                 Python Documentation
+
+        Extract or Replace Parts of a CA
+
+
+
+        Description:
+
+        Extract or replace cells of a cellular automata. These methods simply call the
+        same-name methods on the "lattice" attribute.
+
+
+
+        Usage:
+
+        self[indexes]
+        self[indexes] = value
+
+
+
+        Arguments:
+
+        indexes, value
+
+            arguments passed to further methods.
+
+
+
+        Value:
+
+        For 'self[indexes]', the cell or cells at those indexes.
+        For 'self[indexes] = value', value.
+        """
+        
+        
+        return self.lattice.__getitem__(indexes)
     
     
     def __setitem__(self, indexes, value):
         return self.lattice.__setitem__(indexes, value)
+    
+    
+    __setitem__.__doc__ = __getitem__.__doc__
     
     
     def neighbours(self, indx):
@@ -409,46 +564,229 @@ class CA:
         return self.__neighbours(indx)
     
     
-    def no_update_method(self, which):
-        raise NotImplementedError(
-           f"object has no '{which}' method\n"
-            "\n"
-            "A CA subclass should define an 'update' and 'update_random' method which will\n"
-            "update (deterministicly or randomly, respectively) an individual cell (and\n"
-            "possibly its neighbouring cells).\n"
-            "\n"
-            "The 'update'        method should have a signature update(self, old, new, indx)\n"
-            "The 'update_random' method should have a signature update_random(self, x, indx)\n"
-            "\n"
-            "'old' and 'new' are the old lattice (not to be updated) and the new lattice\n"
-            "(the temp lattice to be update), respectively.\n"
-            "\n"
-            "'x' is the lattice being updated.\n"
-            "\n"
-            "'indx' is the index of the cell which should be updated (and possibly its\n"
-            "neighbours).\n"
-            "\n"
-            "You will likely need the indexes of the neighbouring cells; they can be easily\n"
-            "retrieved with 'self.neighbours(indx)'. The indexes of the neighbours are not\n"
-            "included in the signature in the event that they are not needed. It would be a\n"
-            "waste of time to calculate them if they aren't going to be made use of.\n"
-            "\n"
-            "Both methods should return None, though it isn't an issue if it doesn't.\n"
-            "The return value is not made use of."
-        )
+    def empty(self):
+        
+        
+        """
+        empty                                                       Python Documentation
+        
+        Create a New, Empty Lattice
+        
+        
+        
+        Description:
+        
+        Create a new, empty lattice (a temp lattice), useful for evolving the state of
+        a cellular automata.
+        
+        
+        
+        Usage:
+        
+        empty()
+        empty_fun()
+
+
+
+        Details:
+
+        If the cellular automata has an attribute "fill_value", it will be used with
+        'numpy.full' to create an empty lattice.
+        
+        Otherwise, if the cellular automata's lattice is boolean, integer, float, or
+        complex typed, 'numpy.zeros' will be used to create an empty lattice.
+
+        Otherwise, 'numpy.empty' will be used to create an empty lattice.
+
+        The purpose of 'empty_fun' is to make it easier faster to initialize an empty
+        arrray. It cuts out the 'hasattr' and the 'dtype' condition testing, so it is
+        faster to call a repeated number of times.
+        
+        
+        
+        Note:
+        
+        These methods can be overridden as necessary by a subclass.
+
+
+
+        Value:
+
+        For 'empty', a numpy.ndarray
+        For 'empty_fun', a function which will return a numpy.ndarray
+        """
+        
+        
+        if   hasattr(self, "fill_value"):
+            return numpy.full (self.lattice.shape, self.fill_value, self.lattice.dtype)
+        elif self.lattice.dtype in [bool, int, float, complex]:
+            return numpy.zeros(self.lattice.shape, self.lattice.dtype)
+        else:
+            return numpy.empty(self.lattice.shape, self.lattice.dtype)
+    
+    
+    def empty_fun(self):
+        shape = self.lattice.shape
+        dtype = self.lattice.dtype
+        if hasattr(self, "fill_value"):
+            fill_value = self.fill_value
+            return lambda : numpy.full (shape, fill_value, dtype)
+        elif self.lattice.dtype in [bool, int, float, complex]:
+            return lambda : numpy.zeros(shape, dtype)
+        else:
+            return lambda : numpy.empty(shape, dtype)
+    
+    
+    empty_fun.__doc__ = empty.__doc__
+    
+    
+    @staticmethod
+    def no_update_method():
+        raise NotImplementedError("object has no 'update' or 'update_random' method, see help(CA.update)")
     
     
     def update(self, old, new, indx):
-        self.no_update_method("update")
+        
+        
+        """
+        update                                                      Python Documentation
+
+        Update A Cell
+
+
+
+        Description:
+
+        Update the state of a cell (deterministically or randomly), and possibly its'
+        neighbouring cells.
+
+
+
+        Usage:
+
+        update(old, new, indx)
+        update_random(x, indx)
+
+
+
+        Arguments:
+
+        old
+
+            a numpy.ndarray; the old state of the lattice. DO NOT MODIFY.
+
+        new
+
+            a numpy.ndarray; the new state of the lattice, the temporary lattice.
+
+        indx
+
+            a tuple of integers; the index of the cell to be updated,
+            and possibly its' neighbours.
+
+        x
+
+            a numpy.ndarray; the lattice to be updated.
+            Specifically for update_random, a temporary lattice does not make sense,
+            so none is provided.
+
+
+
+        Details:
+
+        The default methods will raise a NotImplementedError since there is no general
+        method of updating a cell. Your CA subclass must overload these methods with
+        their appropriate definitions. You will likely need the indexes of the
+        neighbouring cells; they can easily be retrieved with 'self.neighbours(indx)'.
+        The indexes of the neighbours are not included in the signature in the event
+        that they are not needed.
+
+        If 'update' or 'update_random' does not make sense for your CA subclass,
+        define them as follows:
+
+        def update(self, old, new, indx)
+            raise NotImplementedError(f"'update' does not make sense for a cellular automata of class \\"{self.__class__.__name__}\\"")
+
+        def update_random(self, x, indx)
+            raise NotImplementedError(f"'update_random' does not make sense for a cellular automata of class \\"{self.__class__.__name__}\\"")
+
+
+
+        Note:
+
+        These methods should not be called directly. They are strictly intended for use
+        in 'evolve' and 'evolve_random'.
+
+
+
+        Value:
+
+        None. Overloaded methods may return other objects, but their return values are
+        not made use of by 'evolve' and 'evolve_random'.
+        """
+        
+        
+        self.no_update_method()
         return
     
     
     def update_random(self, x, indx):
-        self.no_update_method("update_random")
+        self.no_update_method()
         return
     
     
+    update_random.__doc__= update.__doc__
+    
+    
     def evolve(self, updates_per_cell = 1):
+        
+        
+        """
+        evolve                                                      Python Documentation
+
+        Evolve a Cellular Automata
+
+
+
+        Description:
+
+        Evolve the state of a cellular automata.
+
+
+
+        Usage:
+
+        evolve(updates_per_cell = 1)
+        evolve_random(updates_per_cell = 1)
+
+
+
+        Arguments:
+
+        updates_per_cell
+
+            number of times to update each cell while updating the whole lattice.
+            In 'evolve_random', some cells may be updated more than this number,
+            and some less; updates_per_cell is an average number of times to update
+            each cell.
+
+
+
+        Details:
+
+        'evolve' will sequentially update each cell (lexically ordered), and will
+        update the lattice 'updates_per_cell' number of times. 'updates_per_cell' will
+        be converted to an integer.
+
+        'evolve_random' will randomly update a cell, and will update
+        'updates_per_cell * len(self)' cells in total. 'updates_per_cell' can be a float.
+
+
+
+        Value:
+
+        None.
+        """
         
         
         n_cells = len(self)
@@ -491,8 +829,8 @@ class CA:
         
         if not isinstance(updates_per_cell, int):
             updates_per_cell = float(updates_per_cell)
-        if not numpy.isfinite(updates_per_cell):
-            raise ValueError("invalid 'updates_per_cell' argument")
+            if not numpy.isfinite(updates_per_cell):
+                raise ValueError("invalid 'updates_per_cell' argument")
         
         
         n_updates = int(updates_per_cell * n_cells)
@@ -517,6 +855,9 @@ class CA:
         
         
         return
+    
+    
+    evolve_random.__doc__ = evolve.__doc__
     
     
     pass

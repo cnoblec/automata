@@ -37,9 +37,7 @@ class Life(ca.CA):
                 }
 
     def __init__(self, shape=None, lattice=None):
-        super().__init__(shape=shape, cell_type=int, lattice=lattice, neighbour_order=ca.NEIGHBOURS2D8OP)
-        if shape is not None:
-            self.lattice[:] = 0 # set the lattice to be zeros instead of empty
+        super().__init__(shape, int, lattice, ca.NEIGHBOURS2D2OP)
 
     def update(self, old, new, indx):
         cur = old[indx]
