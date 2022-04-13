@@ -45,16 +45,29 @@ class Traffic(ca.CA):
         indices = ca.arrayIndexes(self.shape)
         for i in indices:
             ival = self.lattice[i]
+            if ival == 0:
+                continue
             nf = Traffic.car_dict[ival]
             neighbour = (i[0]+nf[0], i[1]+nf[1])
 
             if temp_lattice[neighbour] == 0 and self.lattice[neighbour] == 0:
                 temp_lattice[neighbour] = ival
-            elif self.lattice[i] != 0:
-                temp_lattice[i] = ival
             else:
-                continue
+                temp_lattice[indx] = ival
         self.lattice = temp_lattice
+
+    def update(self, old, new, indx):
+        ival = old[indx]
+        if ival == 0:
+            return
+        nf = Traffic.car_dict[ival]
+        neighbour = (indx[0]+nf[0], indx[1]+nf[1])
+
+        if new[neighbour] == 0 and old[neighbour] == 0:
+            new[neighbour] = ival
+        else:
+            new[indx] = ival
+        return
 
     def display(self, title=''):
         fig, ax = plt.subplots(figsize=(10,7))
