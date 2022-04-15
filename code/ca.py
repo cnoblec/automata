@@ -2,8 +2,6 @@ import numpy
 
 
 
-
-
 def arrayIndexes(shape):
     
     
@@ -95,9 +93,6 @@ def arrayIndexes(shape):
     ]))
 
 
-
-
-
 ##raise ValueError("I changed the names of the NEIGHBOURSOP objects, they are now all named like NEIGHBOURS{n_dimensions}D{nearest_order}OP, sorry for the inconvenience!")
 
 
@@ -107,6 +102,7 @@ def arrayIndexes(shape):
 #
 # the OP values should be referred to by name only, the actual values could
 # change at any time, but the names should not change
+
 NEIGHBOURS = numpy.array([
     
     

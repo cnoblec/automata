@@ -1,2 +1,6 @@
 ^code/__pycache__$
-^output/.+\.gif$
+\.gif$
+\.jpeg$
+\.jpg$
+\.png$
+^.DS_Store$
