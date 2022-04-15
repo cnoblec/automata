@@ -14,11 +14,12 @@ import re
 # * a land use string, for printing
 # * a colour, for plotting
 # * a probability of being chosen, for initializing a random land use cell
+# * a tuple of other acceptable strings, for input
 INFO = numpy.array([
-    [(WATEROP := 0), "water", "#56B4E9FF", 0.1],
-    [(EARTHOP := 1), "earth", "#8B4513FF", 0.4],
-    [(FIREOP  := 2), "fire" , "#D55E00FF", 0.0],
-    [(TREEOP  := 3), "tree" , "#009E73FF", 0.5],
+    [(WATEROP := 0), "water", "#56B4E9FF", 0.1, ("\U0001F4A7",)                       ],
+    [(EARTHOP := 1), "earth", "#8B4513FF", 0.4, ("\U0001FAA8", "\u26F0", "\U0001F5FB")],
+    [(FIREOP  := 2), "fire" , "#D55E00FF", 0.0, ("\U0001F525",)                       ],
+    [(TREEOP  := 3), "tree" , "#009E73FF", 0.5, ("\U0001F333",)                       ],
 ], dtype = object)
 OPS   = tuple(INFO[:, 0].astype(int))
 LUS   = tuple(INFO[:, 1].astype(str))
@@ -30,15 +31,29 @@ COLS  = tuple([
     for xx in INFO[:, 2]
 ])
 PROBS = tuple(INFO[:, 3].astype(float))
+ALTS  = tuple(INFO[:, 4])
 del INFO
 if not numpy.array_equal(OPS, range(len(OPS))):
     raise ValueError(f"invalid OPS, should be 0:{len(OPS)}")
 
 
+# dictionary to convert all interpretations of land_use to a valid OP
 OPS_DICT = {
     lu:op
     for lu, op in zip(LUS, OPS)
+} | {
+    op:op
+    for op in OPS
 }
+for tmp in [
+    {alt:op for alt in alts}
+    for alts, op in zip(ALTS, OPS)
+]:
+    OPS_DICT |= tmp
+
+
+del tmp
+
 
 
 
@@ -46,15 +61,17 @@ OPS_DICT = {
 
 # to specify a non-random land use cellular automata, specify an array of strings
 # matching this Perl regular expression:
-lu_pattern = "\\A\\s*(" + "|".join(LUS) + ")\\s*(:\\s*(\\d+)\\s*)?\\Z"
+tmp = LUS + tuple(numpy.concatenate(ALTS))
+lu_pattern = "\\A\\s*(" + "|".join(tmp) + ")\\s*(:\\s*(\\d+)\\s*)?\\Z"
 #             ^^^                                                 ^^^ start and end of the string
 #                ^^^^                       ^^^^  ^^^^      ^^^^      any number of whitespace characters
-#                         ^^^^^^^^^^^^^                               one of the land use strings from above
+#                         ^^^^^^^^^^^^^                               one of the land use strings from above, or one of the alternatives
 #                                                ^     ^^^^           a colon, and the age of the land use cell
 #                                                                ^    the colon and age are optional
 #                    ^^^^^^^^^^^^^^^^^^^^^^^                          group 0, the land use string
 #                                               ^^^^^^^^^^^^^^^^^     group 1, unused
 #                                                     ^^^^^^          group 2, the age of the land use cell
+del tmp
 
 
 
@@ -96,23 +113,8 @@ del N
 
 
 
-def as_land_use_OP(land_use):
-    if isinstance(land_use, bool | int | float | complex):
-        value = int(land_use)
-        if value not in OPS:
-            raise ValueError("invalid 'land_use'")
-    elif isinstance(land_use, str):
-        value = OPS_DICT[land_use]
-    else:
-        raise ValueError("invalid 'land_use'")
-    return value
-
-
-
-
-
 class LandUseCell:
-
+    
     
     def __init__(self, land_use, age = 0):
         
@@ -157,7 +159,7 @@ class LandUseCell:
         
         
         if check:
-            land_use = as_land_use_OP(land_use)
+            land_use = OPS_DICT[land_use]
             
             
             if age is None:
@@ -363,17 +365,45 @@ def _LandUseCell_no_check(land_use, age = 0):
 
 
 
-def as_valid_p(x):
-    if not isinstance(x, dict):
-        raise ValueError("invalid 'x', must be a dictionary")
-    p = numpy.zeros(len(OPS), float)
-    for key, value in x.items():
-        key = as_land_use_OP(key)
-        if not isinstance(value, int | float):
-            raise ValueError("invalid values, must be all numbers")
-        if (not numpy.isfinite(value)) or value < 0:
-            raise ValueError(f"invalid value '{value}', must be >= 0")
-        p[key] = value
+def as_valid_p(x = None):
+    if x is None:
+        return PROBS
+    if isinstance(x, dict):
+        done = False
+        special_keys = ["", -1]
+        for key in special_keys:
+            if key in x:
+                value = x[key]
+                if not isinstance(value, int | float):
+                    raise ValueError(f"invalid value at key {repr(key)}, must be a number")
+                if (not numpy.isfinite(value)) or value < 0:
+                    raise ValueError(f"invalid value at key {repr(key)}, must be >= 0")
+                p = numpy.full(len(OPS), value, float)
+                done = True
+                break
+        if not done:
+            p = numpy.zeros(len(OPS), float)
+        for key, value in x.items():
+            if key in special_keys:
+                continue
+            key = OPS_DICT[key]
+            if not isinstance(value, int | float):
+                raise ValueError(f"invalid value at key {repr(key)}, must be a number")
+            if (not numpy.isfinite(value)) or value < 0:
+                raise ValueError(f"invalid value at key {repr(key)}, must be >= 0")
+            p[key] = value
+    elif isinstance(x, tuple):
+        if len(x) != len(OPS):
+            raise ValueError(f"invalid 'x', expected a tuple of length {len(OPS)}, got {len(x)}")
+        p = numpy.zeros(len(OPS), float)
+        for key, value in enumerate(x):
+            if not isinstance(value, int | float):
+                raise ValueError(f"invalid value at element {repr(key)}, must be a number")
+            if (not numpy.isfinite(value)) or value < 0:
+                raise ValueError(f"invalid value at element {repr(key)}, must be >= 0")
+            p[key] = value
+    else:
+        raise ValueError("invalid 'x', must be a dictionary or tuple")
     if p.sum() <= 0:
         raise ValueError("probabilities sum to 0")
     p /= p.sum()
@@ -405,7 +435,8 @@ class LandUse(ca.CA):
         
         Usage:
         
-        LandUse(shape = None, neighbour_order = None, lattice = None)
+        LandUse(shape = None, neighbour_order = None, lattice = None, p = None,
+            age_parameters = None, random_parameters = None)
         
         
         
@@ -424,6 +455,37 @@ class LandUse(ca.CA):
             an object of class numpy.ndarray; an alternative way to specify the state
             of the land use lattice. Should be all strings matching 'lu_pattern', see
             help(LandUseCell.from_string)
+
+        p
+
+            when 'lattice' is not specified, the probabilities for populating a random
+            land use lattice. This is preferably a dictionary like:
+            {
+                "water" : 1,
+                "earth" : 1,
+                "fire"  : 0,
+                "tree"  : 2,
+                ...
+            }
+            If any land uses are not specified, they are assumed to be probability 0.
+            This can be changed by adding {"" : n} or {-1 : n} to your dictionary:
+            {
+                "fire" : 0,
+                "tree" : 3,
+                ""     : 1,
+            }
+            is no fire, and 3 times as many trees.
+
+
+        age_parameters
+
+            a dictionary of integers; ages for which certain events will take place.
+            Used in method 'update'.
+
+        random_parameters
+
+            a dictionary of functions accepting an age and returning True or False for
+            an event taking place. Used in method 'update_random'.
         
         
         
@@ -445,10 +507,7 @@ class LandUse(ca.CA):
         
         if shape is not None:
             shape = numpy.empty(shape).shape
-            if p is None:
-                p = PROBS
-            else:
-                p = as_valid_p(p)
+            p = as_valid_p(p)
         else:
             lattice = numpy.asarray(lattice, dtype = str)
             shape = lattice.shape
@@ -473,7 +532,7 @@ class LandUse(ca.CA):
                 if key in age_parameters:
                     age_params[key] = int(age_parameters[key])
                     if age_params[key] < 0:
-                        raise ValueError("invalid key {repr(key)}, must be positive")
+                        raise ValueError("invalid 'age_parameters' value at key {repr(key)}, must be positive")
         self.age_params = age_params
         
         
@@ -489,7 +548,7 @@ class LandUse(ca.CA):
                 if key in random_parameters:
                     random_params[key] = random_parameters[key]
                     if not callable(random_params[key]):
-                        raise ValueError("invalid key {repr(key)}, must be callable")
+                        raise ValueError("invalid 'random_parameters' value at key {repr(key)}, must be callable")
         self.random_params = random_params
         
         
@@ -573,11 +632,14 @@ class LandUse(ca.CA):
 
         Value:
 
-        A numpy.ndarray with shape 'self.lattice.shape + (4,)' and dtype int (from 0 to 255).
+        A numpy.ndarray with shape 'self.lattice.shape + (-1,)' and dtype int (from 0 to 255).
         """
         
         
-        return numpy.array([COLS[x.land_use] for x in self.lattice.ravel()]).reshape(self.lattice.shape + (4,))
+        return numpy.array([
+            COLS[x.land_use]
+            for x in self.lattice.ravel()
+        ]).reshape(self.lattice.shape + (-1,))
     
     
     color_lattice = colour_lattice
@@ -818,11 +880,6 @@ class LandUse(ca.CA):
         return ax.imshow(self.colour_lattice())
     
     
-##    def show(self, *args, **kwargs):
-##        self.plot(*args, **kwargs)
-##        return matplotlib.pyplot.show()
-    
-    
     def animate(self, file = None, how = None, frames = 100, **save_kwargs):
         fig, ax = matplotlib.pyplot.subplots()
         if (how is None) or how == "deterministic":
@@ -845,7 +902,7 @@ class LandUse(ca.CA):
                 return (im,)
         else:
             raise ValueError("invalid 'how'")
-        im = ax.imshow(numpy.full(self.lattice.shape + (4,), 255))
+        im = ax.imshow(numpy.full(self.lattice.shape + (3,), 255))
         value = matplotlib.animation.FuncAnimation(
             fig, fun, frames = numpy.arange(frames),
             blit = True, interval = 100

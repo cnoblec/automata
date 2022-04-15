@@ -2,6 +2,8 @@ import numpy
 
 
 
+
+
 def arrayIndexes(shape):
     
     
@@ -93,7 +95,7 @@ def arrayIndexes(shape):
     ]))
 
 
-##raise ValueError("I changed the names of the NEIGHBOURSOP objects, they are now all named like NEIGHBOURS{n_dimensions}D{nearest_order}OP, sorry for the inconvenience!")
+
 
 
 # each NEIGHBOUR consists of:
@@ -102,7 +104,6 @@ def arrayIndexes(shape):
 #
 # the OP values should be referred to by name only, the actual values could
 # change at any time, but the names should not change
-
 NEIGHBOURS = numpy.array([
     
     
@@ -273,7 +274,9 @@ class CA:
         cell_type
         
             a type or a numpy.dtype (or something which can be converted to a numpy.dtype);
-            the class of the objects in the lattice.
+            the class of the objects in the lattice. If 'None', 'cell_type' will be
+            inferred from 'lattice', and if 'lattice' is not provided, then 'cell_type'
+            is 'object'.
         
         lattice
         
@@ -294,6 +297,7 @@ class CA:
             int, float, str, object, etc.
         or a numpy.dtype:
             int32, float64, <U16, O, etc.
+        or 'None', where it is inferred from other arguments.
         """
         
         
@@ -309,7 +313,7 @@ class CA:
             op = None
         else:
             op = int(neighbour_order)
-            if not (op in OPS):
+            if op not in OPS:
                 raise ValueError("invalid 'neighbour_order'")
         
         
@@ -340,7 +344,6 @@ class CA:
                 cell_type = lattice.dtype
             else:
                 lattice = numpy.asarray(lattice, dtype = cell_type)
-            dtype = lattice.dtype
         
         
         if lattice.ndim <= 0:
@@ -360,7 +363,7 @@ class CA:
                 raise ValueError(f"invalid 'neighbour_order'")
         
         
-        self.op = op
+        self.neighbour_order = self.op = op
         self.__neighbours = GETTERS[self.op]
         return
     
@@ -409,7 +412,7 @@ class CA:
         Description:
 
         Get a tuple of attributes describing the cellular automata. Each attribute is a
-        tuple, the first element being a tag for the attribute, the second a value of
+        tuple, the first element being a key for the attribute, the second a value of
         the attribute. This is similar in behaviour to dict.items()
 
 
@@ -469,7 +472,7 @@ class CA:
         """
         
         
-        return f"An object of class \"{self.__class__.__name__}\"\n" + "".join([f"\n{tag}:\n{item}\n" for tag, item in self.items()])
+        return f"An object of class \"{self.__class__.__name__}\"\n" + "".join([f"\n{key}:\n{value}\n" for key, value in self.items()])
     
     
 ##    def __repr__(self):
@@ -558,14 +561,11 @@ class CA:
         
         indx
         
-            integer; an index of the lattice. This function is intended to receive an
-            index of a flat lattice and return the neighbouring cells flat indexes.
-            This is mostly for convenience, it's annoying (but not impossible) to index an
-            arbitrarily sized lattice, but very easy to index a 1D lattice.
+            tuple of integers; an index of the lattice.
         
         Value:
         
-        A list of integers.
+        A list of tuples of integers.
         """
         
         
@@ -606,22 +606,23 @@ class CA:
 
         Otherwise, 'numpy.empty' will be used to create an empty lattice.
 
-        The purpose of 'empty_fun' is to make it easier faster to initialize an empty
-        arrray. It cuts out the 'hasattr' and the 'dtype' condition testing, so it is
-        faster to call a repeated number of times.
+        The purpose of 'empty_fun' is to be faster than 'empty' when called a repeated
+        number of times by cutting out the 'hasattr' and 'dtype' condition testing.
         
         
         
         Note:
         
-        These methods can be overridden as necessary by a subclass.
+        These methods can be overloaded by a subclass as necessary.
 
 
 
         Value:
 
-        For 'empty', a numpy.ndarray
-        For 'empty_fun', a function which will return a numpy.ndarray
+        For 'empty', a numpy.ndarray with the same shape and dtype as 'lattice'.
+
+        For 'empty_fun', a function which will return a numpy.ndarray with the same
+        shape and dtype as 'lattice'.
         """
         
         
@@ -704,10 +705,11 @@ class CA:
 
         The default methods will raise a NotImplementedError since there is no general
         method of updating a cell. Your CA subclass must overload these methods with
-        their appropriate definitions. You will likely need the indexes of the
-        neighbouring cells; they can easily be retrieved with 'self.neighbours(indx)'.
-        The indexes of the neighbours are not included in the signature in the event
-        that they are not needed.
+        their appropriate definitions.
+
+        You will likely need the indexes of the neighbouring cells; they can easily be
+        retrieved with 'self.neighbours(indx)'. The indexes of the neighbours are not
+        included in the signature in the event that they are not needed.
 
         If 'update' or 'update_random' does not make sense for your CA subclass,
         define them as follows:
@@ -835,13 +837,30 @@ class CA:
         n_cells = len(self)
         
         
-        if not isinstance(updates_per_cell, int):
+        if isinstance(updates_per_cell, int):
+            
+            
+            # use 'int()' to get rid of any subclass
+            n_updates = int(updates_per_cell) * n_cells
+            
+            
+        else:
+            
+            
+            # make sure 'updates_per_cell' is finite
             updates_per_cell = float(updates_per_cell)
             if not numpy.isfinite(updates_per_cell):
                 raise ValueError("invalid 'updates_per_cell' argument")
-        
-        
-        n_updates = int(updates_per_cell * n_cells)
+            
+            
+            # this will be a float
+            # if finite, convert to integer
+            # if not, convert updates_per_cell to integer and redo multiplication
+            n_updates = updates_per_cell * n_cells
+            if numpy.isfinite(n_updates):
+                n_updates = int(n_updates)
+            else:
+                n_updates = int(updates_per_cell) * n_cells
         
         
         if n_updates <= 0:
