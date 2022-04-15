@@ -5,15 +5,18 @@ import matplotlib.animation
 import matplotlib.pyplot
 import numpy as np
 import traffic
-from traffic import Traffic
 
 
 import importlib
 
 
 ca = importlib.reload(ca)
+gol = importlib.reload(gold)
 land_use = importlib.reload(land_use)
-traffic  = importlib.reload(traffic)
+traffic = importlib.reload(traffic)
+
+
+from traffic import Traffic
 
 
 traffic.Traffic(lattice = [1, 0, 1, 0, 1, 0]).animation(10)
@@ -48,7 +51,7 @@ a.save("test1.gif", writer=writergif)
 ##])))
 
 
-x = land_use.LandUse([50, 50], neighbour_order = 2);x.neighbours((0, 5))
+x = land_use.LandUse([50, 50], neighbour_order = ca.NEIGHBOURS2D2OP);x.neighbours((0, 5))
 print(x)
 ##x.plot()
 ##matplotlib.pyplot.show()
