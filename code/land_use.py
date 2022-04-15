@@ -1,4 +1,5 @@
 import ca
+import matplotlib.animation
 import matplotlib.pyplot
 import math
 import numpy
@@ -95,8 +96,23 @@ del N
 
 
 
+def as_land_use_OP(land_use):
+    if isinstance(land_use, bool | int | float | complex):
+        value = int(land_use)
+        if value not in OPS:
+            raise ValueError("invalid 'land_use'")
+    elif isinstance(land_use, str):
+        value = OPS_DICT[land_use]
+    else:
+        raise ValueError("invalid 'land_use'")
+    return value
+
+
+
+
+
 class LandUseCell:
-    
+
     
     def __init__(self, land_use, age = 0):
         
@@ -141,30 +157,7 @@ class LandUseCell:
         
         
         if check:
-            if isinstance(land_use, bool | int | float | complex):
-                land_use = int(land_use)
-                if land_use not in OPS:
-                    raise ValueError("invalid 'land_use'")
-            
-            
-            elif isinstance(land_use, str):
-                
-                
-                land_use = OPS_DICT[land_use]
-                
-                
-##                for i in range(N_LUS):
-##                    if land_use == LUS[i]:
-##                        land_use = i
-##                        break
-##                
-##                
-##                if isinstance(land_use, str):
-##                    raise ValueError("invalid 'land_use'")
-                
-                
-            else:
-                raise ValueError("invalid 'land_use'")
+            land_use = as_land_use_OP(land_use)
             
             
             if age is None:
@@ -314,7 +307,7 @@ class LandUseCell:
     
     
     @staticmethod
-    def random():
+    def random(p = PROBS):
         
         
         """
@@ -350,7 +343,7 @@ class LandUseCell:
         
         
         return _LandUseCell_no_check(
-            numpy.random.choice(OPS, p = PROBS),
+            numpy.random.choice(OPS, p = p),
             numpy.random.randint(25)
         )
     
@@ -370,10 +363,31 @@ def _LandUseCell_no_check(land_use, age = 0):
 
 
 
+def as_valid_p(x):
+    if not isinstance(x, dict):
+        raise ValueError("invalid 'x', must be a dictionary")
+    p = numpy.zeros(len(OPS), float)
+    for key, value in x.items():
+        key = as_land_use_OP(key)
+        if not isinstance(value, int | float):
+            raise ValueError("invalid values, must be all numbers")
+        if (not numpy.isfinite(value)) or value < 0:
+            raise ValueError(f"invalid value '{value}', must be >= 0")
+        p[key] = value
+    if p.sum() <= 0:
+        raise ValueError("probabilities sum to 0")
+    p /= p.sum()
+    return tuple(p)
+
+
+
+
+
 class LandUse(ca.CA):
     
     
-    def __init__(self, shape = None, neighbour_order = None, lattice = None):
+    def __init__(self, shape = None, neighbour_order = None, lattice = None, p = None,
+        age_parameters = None, random_parameters = None):
         
         
         """
@@ -431,6 +445,10 @@ class LandUse(ca.CA):
         
         if shape is not None:
             shape = numpy.empty(shape).shape
+            if p is None:
+                p = PROBS
+            else:
+                p = as_valid_p(p)
         else:
             lattice = numpy.asarray(lattice, dtype = str)
             shape = lattice.shape
@@ -443,52 +461,86 @@ class LandUse(ca.CA):
         )
         
         
+        age_params = {
+            "water_turn_earth_to_tree" :  5,
+             "tree_turn_earth_to_tree" :  3,
+            "fire_to_earth"            :  5,
+            "tree_to_fire"             : 25,
+            "fire_turn_tree_to_fire"   :  5,
+        }
+        if isinstance(age_parameters, dict):
+            for key in age_params.keys():
+                if key in age_parameters:
+                    age_params[key] = int(age_parameters[key])
+                    if age_params[key] < 0:
+                        raise ValueError("invalid key {repr(key)}, must be positive")
+        self.age_params = age_params
+        
+        
+        random_params = {
+            "water_turn_earth_to_tree" : lambda age : numpy.random.random() < 0.1339745962155614,
+             "tree_turn_earth_to_tree" : lambda age : numpy.random.random() < 0.1339745962155614,
+            "fire_to_earth"            : lambda age : numpy.random.random() > math.exp(-age),
+            "tree_to_fire"             : lambda age : numpy.random.random() > math.exp(-age/1000.0),
+            "fire_turn_tree_to_fire"   : lambda age : numpy.random.random() < 0.25,
+        }
+        if isinstance(random_parameters, dict):
+            for key in random_params.keys():
+                if key in random_parameters:
+                    random_params[key] = random_parameters[key]
+                    if not callable(random_params[key]):
+                        raise ValueError("invalid key {repr(key)}, must be callable")
+        self.random_params = random_params
+        
+        
         if lattice is not None:
             for indx in numpy.ndindex(self.lattice.shape):
                 self.lattice[indx] = LandUseCell.from_string(lattice[indx])
+            self.p = None
         else:
             for indx in numpy.ndindex(self.lattice.shape):
-                self.lattice[indx] = LandUseCell.random()
+                self.lattice[indx] = LandUseCell.random(p = p)
+            self.p = p
         return
     
     
-    def __repr__(self):
-        
-        
-        """
-        __repr__                                                    Python Documentation
-
-        Cellular Automata Conversion
-
-
-
-        Description:
-
-        Convert a cellular automata to its string representation.
-
-
-
-        Usage:
-        
-        str(self)
-        repr(self)
-
-
-
-        Details:
-
-        The string representation will include the lattice, the lattice dimensions, and
-        the cell type.
-
-
-
-        Value:
-
-        a string.
-        """
-        
-        
-        return f"LandUse(lattice = {repr(self.lattice)}, neighbour_order = {repr(self.op)})"
+##    def __repr__(self):
+##        
+##        
+##        """
+##        __repr__                                                    Python Documentation
+##
+##        Cellular Automata Conversion
+##
+##
+##
+##        Description:
+##
+##        Convert a cellular automata to its string representation.
+##
+##
+##
+##        Usage:
+##        
+##        str(self)
+##        repr(self)
+##
+##
+##
+##        Details:
+##
+##        The string representation will include the lattice, the lattice dimensions, and
+##        the cell type.
+##
+##
+##
+##        Value:
+##
+##        a string.
+##        """
+##        
+##        
+##        return f"LandUse(lattice = {repr(self.lattice)}, neighbour_order = {repr(self.op)})"
     
     
 ##    def land_use_lattice(self):
@@ -654,11 +706,10 @@ class LandUse(ca.CA):
                 # for an earth which neighbours a water or tree, turn into a tree?
                 if (
                     old[i].land_use == WATEROP and \
-                    old[i].age >= 5            and \
-                        xx.age >= 5
+                    xx.age >= self.age_params["water_turn_earth_to_tree"]
                 ) or (
                     old[i].land_use == TREEOP  and \
-                    old[i].age >= 3
+                    old[i].age >= self.age_params["tree_turn_earth_to_tree"]
                 ):
                     xx.land_use = TREEOP
                     xx.age      = 0
@@ -669,7 +720,7 @@ class LandUse(ca.CA):
             
             
             # the fire extinguishes itself?
-            if xx.age >= 5:
+            if xx.age >= self.age_params["fire_to_earth"]:
                 xx.land_use = EARTHOP
                 xx.age      = 0
                 return
@@ -679,7 +730,7 @@ class LandUse(ca.CA):
             
             
             # the tree lights on fire?
-            if xx.age >= 25:
+            if xx.age >= self.age_params["tree_to_fire"]:
                 xx.land_use = FIREOP
                 xx.age      = 0
                 return
@@ -691,7 +742,7 @@ class LandUse(ca.CA):
                 # for a tree which neighbours a fire, ignite it?
                 if (
                     old[i].land_use == FIREOP and \
-                    old[i].age >= 5
+                    old[i].age >= self.age_params["fire_turn_tree_to_fire"]
                 ):
                     xx.land_use = FIREOP
                     xx.age      = 0
@@ -712,9 +763,14 @@ class LandUse(ca.CA):
             for i in self.neighbours(indx):
                 
                 
-                # for an earth which neighbours a tree, turn into a tree?
-                if x[i].land_use == TREEOP and \
-                   numpy.random.random() < 0.25:
+                # for an earth which neighbours a water or tree, turn into a tree?
+                if (
+                    x[i].land_use == WATEROP and \
+                    self.random_params["water_turn_earth_to_tree"](xx.age)
+                ) or (
+                    x[i].land_use == TREEOP and \
+                    self.random_params["tree_turn_earth_to_tree"](x[i].age)
+                ):
                     xx.land_use = TREEOP
                     xx.age      = 0
                     return
@@ -724,7 +780,7 @@ class LandUse(ca.CA):
             
             
             # the fire extinguishes itself?
-            if numpy.random.random() > math.exp(-xx.age):
+            if self.random_params["fire_to_earth"](xx.age):
                 xx.land_use = EARTHOP
                 xx.age      = 0
                 return
@@ -734,7 +790,7 @@ class LandUse(ca.CA):
             
             
             # the tree lights on fire?
-            if numpy.random.random() > math.exp(-xx.age/1000.0):
+            if self.random_params["tree_to_fire"](xx.age):
                 xx.land_use = FIREOP
                 xx.age      = 0
                 return
@@ -745,7 +801,7 @@ class LandUse(ca.CA):
                 
                 # for a tree which neighbours a fire, ignite it?
                 if x[i].land_use == FIREOP and \
-                   numpy.random.random() < 0.25:
+                   self.random_params["fire_turn_tree_to_fire"](x[i].age):
                     xx.land_use = FIREOP
                     xx.age      = 0
                     return
@@ -758,8 +814,8 @@ class LandUse(ca.CA):
     update.__doc__ = update_random.__doc__
     
     
-    def plot(self):
-        return matplotlib.pyplot.imshow(self.colour_lattice())
+    def plot(self, ax = matplotlib.pyplot):
+        return ax.imshow(self.colour_lattice())
     
     
 ##    def show(self, *args, **kwargs):
@@ -767,24 +823,37 @@ class LandUse(ca.CA):
 ##        return matplotlib.pyplot.show()
     
     
-    def animate(self, which = None):
-        if (which is None) or which == "deterministic":
+    def animate(self, file = None, how = None, frames = 100, **save_kwargs):
+        fig, ax = matplotlib.pyplot.subplots()
+        if (how is None) or how == "deterministic":
             def fun(frame):
-                self.evolve()
+                if frame == 0:
+                    ax.set_title("initial")
+                else:
+                    ax.set_title(f"step {frame}")
+                    self.evolve()
                 im.set_array(self.colour_lattice())
                 return (im,)
-        elif which == "random":
+        elif how == "random":
             def fun(frame):
-                self.evolve_random()
+                if frame == 0:
+                    ax.set_title("initial")
+                else:
+                    ax.set_title(f"step {frame}")
+                    self.evolve_random()
                 im.set_array(self.colour_lattice())
                 return (im,)
-        
-        fig = matplotlib.pyplot.figure()
-        im = self.plot()
-        return matplotlib.animation.FuncAnimation(
-            fig, fun, frames = numpy.arange(200),
+        else:
+            raise ValueError("invalid 'how'")
+        im = ax.imshow(numpy.full(self.lattice.shape + (4,), 255))
+        value = matplotlib.animation.FuncAnimation(
+            fig, fun, frames = numpy.arange(frames),
             blit = True, interval = 100
         )
+        if file is not None:
+            value.save(filename = file, **save_kwargs)
+            matplotlib.pyplot.close(fig)
+        return value
     
     
     pass

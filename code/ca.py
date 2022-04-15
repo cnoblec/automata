@@ -318,9 +318,13 @@ class CA:
         
         
         if shape is not None:
+            
+            
             if cell_type is None:
                 cell_type = object
             dtype = numpy.dtype(cell_type)
+            
+            
             # we want to call 'self.empty' to initialize an empty lattice,
             # but that relies on the lattice being already initialized
             # do the same idea without that assumption
@@ -330,13 +334,19 @@ class CA:
                 lattice = numpy.zeros(shape, dtype)
             else:
                 lattice = numpy.empty(shape, dtype)
+            
+            
         else:
+            
+            
             if cell_type is None:
                 lattice = numpy.asarray(lattice)
                 cell_type = lattice.dtype
             else:
                 lattice = numpy.asarray(lattice, dtype = cell_type)
             dtype = lattice.dtype
+        
+        
         if lattice.ndim <= 0:
             raise ValueError(f"invalid '{which}', cannot use 0 dimensional array for a cellular automata")
         if lattice.ndim > len(OPS_LIST):
@@ -354,9 +364,7 @@ class CA:
                 raise ValueError(f"invalid 'neighbour_order'")
         
         
-        self.op      = op
-        
-        
+        self.op = op
         self.__neighbours = GETTERS[self.op]
         return
     
@@ -468,15 +476,15 @@ class CA:
         return f"An object of class \"{self.__class__.__name__}\"\n" + "".join([f"\n{tag}:\n{item}\n" for tag, item in self.items()])
     
     
-    def __repr__(self):
-        if isinstance(self.cell_type, type):
-            cell_type = self.cell_type.__name__
-        else:
-            cell_type = repr(self.cell_type)
-        return f"CA(cell_type = {cell_type}, lattice = {repr(self.lattice)}, neighbour_order = {repr(self.op)})"
-    
-    
-    __repr__.__doc__ = __str__.__doc__
+##    def __repr__(self):
+##        if isinstance(self.cell_type, type):
+##            cell_type = self.cell_type.__name__
+##        else:
+##            cell_type = repr(self.cell_type)
+##        return f"CA(cell_type = {cell_type}, lattice = {repr(self.lattice)}, neighbour_order = {repr(self.op)})"
+##    
+##    
+##    __repr__.__doc__ = __str__.__doc__
     
     
     def __getitem__(self, indexes):
