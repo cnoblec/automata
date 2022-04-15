@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 import matplotlib.pyplot
 import numpy
 import os
@@ -99,6 +98,3 @@ for i in range(10):
         how = "random"
     )
 
-=======
-# bruh
->>>>>>> fb8973587732b3d6b5dc6805245d64f6807502cf
