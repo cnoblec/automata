@@ -11,7 +11,7 @@ import importlib
 
 
 ca = importlib.reload(ca)
-gol = importlib.reload(gold)
+gol = importlib.reload(gol)
 land_use = importlib.reload(land_use)
 traffic = importlib.reload(traffic)
 
