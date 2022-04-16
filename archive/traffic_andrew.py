@@ -1,14 +1,18 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap
+import matplotlib.animation
+import os
+import sys
 
 
 
 
 
+here = os.path.dirname(__file__) if ("__file__" in locals()) else os.path.abspath(sys.path[0])
+sys.path.insert(1, os.path.abspath(here + "/../code"))
 import ca
-import matplotlib.animation as ani
-import matplotlib.colors as col
+del sys.path[1]
 
 
 
@@ -16,13 +20,13 @@ import matplotlib.colors as col
 
 INFO = np.array([
     [NOCAR := 0, "white" ],
-    [RIGHT := 1, "red"   ],
-    [DOWN  := 2, "blue"  ],
-    [LEFT  := 3, "green" ],
-    [UP    := 4, "purple"]
+    [UP    := 1, "purple"],
+    [LEFT  := 2, "green" ],
+    [RIGHT := 3, "red"   ],
+    [DOWN  := 4, "blue"  ],
 ], dtype = object)
-DIRS = INFO[:, 0]
-COLS = INFO[:, 1]
+DIRS = tuple(INFO[:, 0])
+COLS = tuple(INFO[:, 1])
 CMAP = ListedColormap(COLS)
 del INFO
 
@@ -45,7 +49,7 @@ class Traffic(ca.CA):
         
         
         if shape is not None:
-            shape = numpy.empty(shape).shape
+            shape = np.empty(shape).shape
         else:
             lattice = np.asarray(lattice, dtype = int)
             shape = lattice.shape
@@ -64,8 +68,8 @@ class Traffic(ca.CA):
         if len(shape) != 2:
             raise NotImplementedError(f"invalid '{which}', {len(shape)} dimensional traffic automata are not yet implemented")
         if (lattice is not None) and do_check:
-            if not np.isin(lattice, DIRECTIONS).all():
-                raise ValueError(f"invalid 'lattice', contains directions outside of {DIRECTIONS}")                
+            if not np.isin(lattice, DIRS).all():
+                raise ValueError(f"invalid 'lattice', contains directions outside of {DIRS}")                
         super().__init__(
             shape = shape,
             cell_type = int,
@@ -75,22 +79,20 @@ class Traffic(ca.CA):
             tmp = self.lattice.ravel()
             tmp[:] = lattice.ravel()
         else:
-            for indx in np.ndindex(self.lattice.shape):
-                self.lattice[indx] = np.random.choice(
-                    DIRECTIONS
-                )
+            tmp = self.lattice.ravel()
+            tmp[:] = np.random.choice(DIRS, size = tmp.size)
         return
     
     
     def neighbour(self, indx, direction):
-        if   direction == RIGHT:
+        if   direction == UP:
+            return (indx[0] - 1, indx[1]    )
+        elif direction == LEFT:
+            return (indx[0]    , indx[1] - 1)
+        elif direction == RIGHT:
             return (indx[0]    , indx[1] + 1)
         elif direction == DOWN:
             return (indx[0] + 1, indx[1]    )
-        elif direction == LEFT:
-            return (indx[0]    , indx[1] - 1)
-        elif direction == UP:
-            return (indx[0] - 1, indx[1]    )
         raise ValueError("invalid 'direction' argument")
         return
     
@@ -104,8 +106,7 @@ class Traffic(ca.CA):
         
         
         next_pos = self.neighbour(indx, xx)
-        if (old[next_pos] == NOCAR) and \
-           (new[next_pos] == NOCAR):
+        if (old[next_pos] == NOCAR) and (new[next_pos] == NOCAR):
             new[indx] = NOCAR
             new[next_pos] = xx
             return
@@ -113,11 +114,11 @@ class Traffic(ca.CA):
         
         new[indx] = xx
         return
-
-
-    def plot(self):
+    
+    
+    def plot(self, ax = plt):
         x = self.lattice
-        im = plt.imshow(
+        im = ax.imshow(
             x,
             cmap = CMAP,
             vmin = 0, vmax = 4
@@ -130,33 +131,37 @@ class Traffic(ca.CA):
             if xx == NOCAR:
                 continue
             indxs.append(indx)
-            if xx == RIGHT:
+            if   xx == UP:
+                delta = (-1,  0)
+            elif xx == LEFT:
+                delta = ( 0, -1)
+            elif xx == RIGHT:
                 delta = ( 0,  1)
             elif xx == DOWN:
                 delta = ( 1,  0)
-            elif xx == LEFT:
-                delta = ( 0, -1)
-            elif xx == UP:
-                delta = (-1,  0)
             else:
                 raise ValueError(f"invalid direction {xx}")
             deltas.append(delta)
-            arrows.append(plt.arrow(
+            arrows.append(ax.arrow(
                 indx[1] - delta[1]/4.0, indx[0] - delta[0]/4.0,
                 delta[1]/2.0, delta[0]/2.0,
                 length_includes_head = True,
                 head_width = 0.15, width = 0.0625,
                 color = "white", ec = "black"
             ))
-        SHAPE = x.shape
-        return (im, arrows, indxs, deltas, SHAPE)
+        return (im, arrows, indxs, deltas)
     
     
     def animate(self, frames = 200, interval = 1000):
-        fig = plt.figure()
-        im, arrows, indxs, deltas, SHAPE = self.plot()
+        fig, ax = plt.subplots()
+        im, arrows, indxs, deltas = self.plot(ax = ax)
+        shape = self.lattice.shape
         def fun(frame):
-            self.evolve()
+            if frame == 0:
+                ax.set_title("initial")
+            else:
+                ax.set_title(f"step {frame}")
+                self.evolve()
             im.set_array(self.lattice)
             for arrow , indx , delta , i                  in zip(
                 arrows, indxs, deltas, range(len(arrows))
@@ -164,7 +169,10 @@ class Traffic(ca.CA):
                 # if the cell has no car, the car has moved, so
                 # update indxs[i] and move the arrow
                 if self.lattice[indx] == NOCAR:
-                    indxs[i] = indx = ( (indx[0] + delta[0]) % SHAPE[0] , (indx[1] + delta[1]) % SHAPE[1] )
+                    indxs[i] = indx = (
+                        (indx[0] + delta[0]) % shape[0] ,
+                        (indx[1] + delta[1]) % shape[1]
+                    )
                     arrow.set_data(
                         x = indx[1] - delta[1]/4.0,
                         y = indx[0] - delta[0]/4.0
@@ -174,7 +182,7 @@ class Traffic(ca.CA):
             # i can't believe this fixes the issue, it feels like a joke
             im.set_data(self.lattice)
             return (im,)
-        return ani.FuncAnimation(
+        return matplotlib.animation.FuncAnimation(
             fig, fun, init_func = init,
             frames = np.arange(frames),
             blit = True, interval = interval

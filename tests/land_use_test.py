@@ -9,7 +9,7 @@ import sys
 
 # little bit of a pain in the ass to import scripts from another directory,
 # but this seems to do the trick
-here = os.path.abspath(sys.path[0])
+here = os.path.dirname(__file__) if ("__file__" in locals()) else os.path.abspath(sys.path[0])
 sys.path.insert(1, os.path.abspath(here + "/../code"))
 import land_use
 del sys.path[1]
