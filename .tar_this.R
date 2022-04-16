@@ -58,9 +58,9 @@ tryCatch(finally = setwd(owd), {
 
 
     build.name <- paste0(
-        DESCRIPTION[[1L, "Package"]],
+        package,
         "_",
-        DESCRIPTION[[1L, "Version"]],
+        version,
         ".tar.gz"
     )
 
