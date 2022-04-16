@@ -3,4 +3,7 @@
 \.jpeg$
 \.jpg$
 \.png$
-^.DS_Store$
+^\.DS_Store$
+^\.gitignore$
+^\.tar_this\.R$
+^\.tarignore$
