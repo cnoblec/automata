@@ -106,9 +106,6 @@ class Mould(ca.CA):
             
             new[new_idx].dir = dir
             # print("\tnew dir:",dir)
-        
-
-
             
 
     def slimes(self):
