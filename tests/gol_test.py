@@ -3,7 +3,7 @@ code = os.path.abspath("../code")
 sys.path.append(code)
 import gol
 
-game = gol.Life(shape=(20,20))
+game = gol.Life(shape=(19,19))
 game.add_shape((3,3),"pulsar")
 ani = game.animate(frames=3, interval=500,filename="../output/gol_pulsar.gif")
 game = gol.Life(shape=(10,10))
