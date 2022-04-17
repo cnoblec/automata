@@ -7,22 +7,34 @@ import slime
 
 # Generic test
 # sm = slime.Mould(200)
-# sm.animate(frames=100, interval=100, filename="../output/slime200.gif")
+# sm.animate(frames=100, interval=100, filename="../output/slime_mould_tests/slime200.gif")
 
 
 # Sensor offset tests:
 
 # sm = slime.Mould(200, sensor_offset=9)
-# sm.animate(frames=100, interval=100, filename="../output/sensor_offset_tests/offset9.gif")
+# sm.animate(frames=100, interval=100, filename="../output/slime_mould_tests/offset9.gif")
 
 # sm = slime.Mould(200, sensor_offset=1)
-# sm.animate(frames=100, interval=100, filename="../output/sensor_offset_tests/offset1.gif")
+# sm.animate(frames=100, interval=100, filename="../output/slime_mould_tests/offset1.gif")
 
 # sm = slime.Mould(200, sensor_offset=30)
-# sm.animate(frames=200, interval=100, filename="../output/sensor_offset_tests/offset30.gif")
+# sm.animate(frames=200, interval=100, filename="../output/slime_mould_tests/offset30.gif")
 
-sm = slime.Mould(200, sensor_offset=9, coverage=0.1)
-sm.animate(frames=200, interval=100, filename="../output/sensor_offset_tests/coverage0-1.gif")
+sm = slime.Mould(200, coverage=0.05)
+sm.add_food((50,100), size=20)
+sm.add_food((150,100), size=20)
+
+sm.animate(frames=300, interval=100, filename="../output/slime_mould_tests/2_sources.gif")
+
+sm = slime.Mould(200, coverage=0.05)
+sm.add_food((50,50), size=10)
+sm.add_food((150,50), size=10)
+sm.add_food((150,150), size=10)
+sm.add_food((50,150), size=10)
+
+sm.animate(frames=400, interval=100, filename="../output/slime_mould_tests/4_sources.gif")
+
 
 
 # Sensor offset vs. coverage %

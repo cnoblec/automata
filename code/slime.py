@@ -131,7 +131,7 @@ class Mould(ca.CA):
             ph_sum += old[ni].ph
         new[indx].ph += (ph_sum/9)*(1-self.decay)  # scale the mean by the decay factor
         
-        if dir > 0:
+        if dir > 0 and dir < 9:
             # print("cur dir:",dir)
             # print("\tcur indx:",indx)
             # Motor Stage
@@ -173,7 +173,33 @@ class Mould(ca.CA):
             
             new[new_idx].dir = dir
             # print("\tnew dir:",dir)
-            
+        elif dir == 9:
+            # this is some food
+            new[indx].dir = 9
+            new[indx].ph += 10.
+
+    def add_food(self, indx, size=1):
+        '''
+        Adds food cells in a square with length size
+
+        indx: top left location
+        '''
+        for x in range(size):
+            for y in range(size):
+                food_i = (indx[0]+y,indx[1]+x)
+                self.lattice[food_i].dir = 9
+                self.lattice[food_i].ph = 10.
+
+    def food(self):
+        '''
+        Returns a lattice of just the food cells
+        '''
+        foods = np.zeros_like(self.lattice, dtype=int)
+        for i in np.ndindex(self.lattice.shape):
+            dir = self.lattice[i].dir
+            if dir == 9:
+                foods[i] = 1
+        return foods
 
     def slimes(self):
         '''
@@ -181,7 +207,9 @@ class Mould(ca.CA):
         '''
         slimes = np.zeros_like(self.lattice, dtype=int)
         for i in np.ndindex(self.lattice.shape):
-            slimes[i] = self.lattice[i].dir
+            dir = self.lattice[i].dir
+            if dir < 9:
+                slimes[i] = dir
         return slimes
         
     def pheromones(self):
@@ -201,7 +229,7 @@ class Mould(ca.CA):
         fig = plt.figure()
         
         im = plt.imshow(    self.pheromones(),
-                            cmap='gray')
+                            cmap='gray_r')
         # plt.axis(False)
         plt.axis("tight")
         plt.axis("image")
@@ -215,7 +243,7 @@ class Mould(ca.CA):
                         left=False,
                         right=False,
                         labelbottom=False,
-                        labelleft=False) 
+                        labelleft=False)
 
         def func(frame):
             self.evolve()
