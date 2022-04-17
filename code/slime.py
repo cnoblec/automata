@@ -53,7 +53,7 @@ class Mould(ca.CA):
     # List of possible directions
     dirs = [1,2,3,4,5,6,7,8]
 
-    def __init__(self, width, coverage=0.1, sensor_offset=9):
+    def __init__(self, width, coverage=0.1, decay=0.1, sensor_offset=9):
         '''
         Initializes the Mould instance
 
@@ -70,7 +70,7 @@ class Mould(ca.CA):
             
         '''
         super().__init__(shape=(width, width), cell_type=SlimeCell, neighbour_order=ca.NEIGHBOURS2D2OP) # direction of slime mould lattice
-        self.decay = 0.1
+        self.decay = decay
         self.sensor_offset = sensor_offset
         self.lookouts = self.get_lookouts()
         prob = coverage/8
@@ -157,7 +157,7 @@ class Mould(ca.CA):
             sensors = []                                # front, left, right pheromone
             for id in self.lookouts[dir]:
                 ph_idx = (indx[0]+id[0],indx[1]+id[1])
-                sensors.append(self.lattice[ph_idx].ph)
+                sensors.append(old[ph_idx].ph)
             # print("\tsensors:", sensors)
             # f,l,r = sensors
             best = np.argmax(sensors)                   # direction to face
@@ -224,5 +224,5 @@ class Mould(ca.CA):
             
         ani = matplotlib.animation.FuncAnimation(fig, func, frames=frames, blit=True, interval=interval)
         fps = 1/(interval/1000)
-        filename is not None and ani.save(filename, dpi=100, writer=matplotlib.animation.PillowWriter(fps=fps))
+        filename is not None and ani.save(filename, dpi=150, writer=matplotlib.animation.PillowWriter(fps=fps))
         return ani
