@@ -132,19 +132,18 @@ class Traffic(ca.CA):
             label = Traffic.car_arrows[ival]
             x = i[1]
             if x < 0:
-                x += self.shape[0]
+                x += self.shape[1]
             y = i[0]
             if y < 0:
-                y += self.shape[1]
+                y += self.shape[0]
 
             text = ax.text(x, y, label, ha="center", va="center", color="w", size=25)
             text.set_path_effects([PathEffects.withStroke(linewidth=1, foreground='black')])
             arrows.append(text)
 
-        plt.show()
         return fig, ax, im, arrows
     
-    def animation(self, N_steps, title=''):
+    def animate(self, N_steps, title='', interval=200, filename=None):
         '''
         Animates the traffic instance over N steps
 
@@ -162,7 +161,7 @@ class Traffic(ca.CA):
             im.set_data(self.lattice)
             return im,
 
-        def animate(frame):
+        def animator(frame):
             # Clear arrows
             c = len(ax.texts)
             for _ in range(c):
@@ -182,17 +181,22 @@ class Traffic(ca.CA):
                 label = Traffic.car_arrows[ival]
                 x = i[1]
                 if x < 0:
-                    x += self.shape[0]
+                    x += self.shape[1]
                 y = i[0]
                 if y < 0:
-                    y += self.shape[1]
+                    y += self.shape[0]
                 text = ax.text(x, y, label, ha="center", va="center", color="w", size=25)
                 text.set_path_effects([PathEffects.withStroke(linewidth=1, foreground='black')])
 
             return im,
-        return ani.FuncAnimation(
-            fig, animate, init_func = init,
+        animation = ani.FuncAnimation(
+            fig, animator, init_func = init,
             frames = np.arange(N_steps),
-            blit = True, interval=1000,
+            blit = True, interval=interval,
         )
 
+        if filename is not None:
+            fps = 1/(interval/1000)
+            animation.save(filename, dpi=100, writer=matplotlib.animation.PillowWriter(fps=fps))
+
+        return animation

@@ -748,7 +748,7 @@ class CA:
     update_random.__doc__= update.__doc__
     
     
-    def evolve(self, updates_per_cell = 1):
+    def evolve(self, updates_per_cell = 1, shuffle_order=False):
         
         
         """
@@ -816,13 +816,19 @@ class CA:
         old = None
         new = self.lattice
         indexes = arrayIndexes(new.shape)
+        
+
         for _ in range(updates_per_cell):
             
             
             old = new
             new = emp()
             
+
+            # if shuffle_order:
+            #     numpy.random.shuffle(indexes)
             
+
             for indx in indexes:
                 upd(old, new, indx)
         
