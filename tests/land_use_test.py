@@ -18,6 +18,12 @@ del sys.path[1]
 
 
 
+out = here + f"/../output/land_use_tests/"
+
+
+
+
+
 for i, p in enumerate((
     None,
     {
@@ -37,7 +43,7 @@ for i, p in enumerate((
     },
 )):
     land_use.LandUse(shape = (50, 50), p = p).animate(
-        file = here + f"/../output/land_use_test_probs_{i}.gif",
+        file = out + f"probs_{i}.gif",
         how = "random"
     )
 
@@ -55,7 +61,7 @@ for i in range(10):
         "water_turn_earth_to_tree" : i,
          "tree_turn_earth_to_tree" : i,
     }).animate(
-        file = here + f"/../output/land_use_test_earth_to_tree_{i}.gif",
+        file = out + f"earth_to_tree_{i}.gif",
         how = "deterministic"
     )
 
@@ -64,7 +70,7 @@ for i in range(4, 4 + 10):
     land_use.LandUse(lattice = lattice, age_parameters = {
         "fire_to_earth" : i
     }).animate(
-        file = here + f"/../output/land_use_test_fire_to_earth_{i}.gif",
+        file = out + f"fire_to_earth_{i}.gif",
         how = "deterministic"
     )
 
@@ -73,7 +79,7 @@ for i in range(7):
     land_use.LandUse(lattice = lattice, age_parameters = {
         "fire_turn_tree_to_fire" : i
     }).animate(
-        file = here + f"/../output/land_use_test_fire_spread_{i}.gif",
+        file = out + f"fire_spread_{i}.gif",
         how = "deterministic"
     )
 
@@ -84,7 +90,7 @@ for i in range(10):
         "water_turn_earth_to_tree" : lambda age : numpy.random.random() < n,
          "tree_turn_earth_to_tree" : lambda age : numpy.random.random() < n,
     }).animate(
-        file = here + f"/../output/land_use_test_earth_to_tree_random_{i}.gif",
+        file = out + f"earth_to_tree_random_{i}.gif",
         how = "random"
     )
 
@@ -94,7 +100,7 @@ for i in range(10):
     land_use.LandUse(lattice = lattice, random_parameters = {
         "fire_turn_tree_to_fire" : lambda age : numpy.random.random() < n
     }).animate(
-        file = here + f"/../output/land_use_test_fire_spread_random_{i}.gif",
+        file = out + f"fire_spread_random_{i}.gif",
         how = "random"
     )
 

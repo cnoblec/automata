@@ -1,9 +1,0 @@
-^code/__pycache__$
-\.gif$
-\.jpeg$
-\.jpg$
-\.png$
-^\.DS_Store$
-^\.gitignore$
-^\.tar_this\.R$
-^\.tarignore$

@@ -27,8 +27,8 @@ Tests are created in `automata/tests` to demonstrate working examples of differe
 
 [Forest Fire Simulation](https://doi.org/10.1007/978-1-4939-8700-9_57):
 <p align="center">
-  <img alt="quick" src="output/land_use_tests/land_use_test_fire_spread_1.gif" width="400"/>
-  <img alt="endless" src="output/land_use_tests/land_use_test_earth_to_tree_random_3.gif" width="400"/>
+  <img alt="quick" src="output/land_use_tests/fire_spread_1.gif" width="400"/>
+  <img alt="endless" src="output/land_use_tests/earth_to_tree_random_3.gif" width="400"/>
 </p>
 
 [Slime Mould Simulation](https://doi.org/10.1162/artl.2010.16.2.16202):
