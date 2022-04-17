@@ -33,5 +33,9 @@ Tests are created in `automata/tests` to demonstrate working examples of differe
 
 [Slime Mould Simulation](https://doi.org/10.1162/artl.2010.16.2.16202):
 <p align="center">
-  <img alt="slime" src="output/sensor_offset_tests/slime200.gif" width="400"/>
+  <img alt="slime" src="output/slime_mould_tests/slime200.gif" width="400"/>
+</p>
+<p align="center">
+  <img alt="slime2food" src="output/slime_mould_tests/2_sources.gif" width="400"/>
+  <img alt="slime4food" src="output/slime_mould_tests/4_sources.gif" width="400"/>
 </p>
